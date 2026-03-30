@@ -499,10 +499,10 @@ function renderEZ(){
         <div class="c-header"><div class="c-title pill-l2">Classificação dos Tickets</div><div class="c-sub">Distribuição por tipo de resultado</div></div>
         <div style="margin-top:10px;width:100%;">
           ${classSort.map(([label,count],i)=>`
-            <div class="ez-bar-row">
-              <div class="ez-bar-label">${label}</div>
-              <div class="ez-bar-track"><div class="ez-bar-fill" style="width:${(count/total*100).toFixed(1)}%;background:${classColors[i]};"></div></div>
-              <div class="ez-bar-pct">${(count/total*100).toFixed(0)}%</div>
+            <div class="ez-bar-row" style="margin-bottom:8px;font-size:13px;">
+              <div class="ez-bar-label" style="font-size:13px;">${label}</div>
+              <div class="ez-bar-track" style="height:8px;"><div class="ez-bar-fill" style="width:${(count/total*100).toFixed(1)}%;background:${classColors[i]};height:8px;border-radius:4px;"></div></div>
+              <div class="ez-bar-pct" style="font-size:13px;">${(count/total*100).toFixed(0)}%</div>
             </div>`).join('')}
         </div>
       </div>
@@ -594,8 +594,8 @@ function buildHeatmap(data) {
   }
 
   // Dimensões — altura fixa, largura escala proporcionalmente
-  const cellW = 22, cellH = 22;
-  const leftPad = 32, topPad = 18, bottomPad = 18;
+  const cellW = 22, cellH = 28;
+  const leftPad = 32, topPad = 22, bottomPad = 22;
   const svgW = leftPad + 24 * cellW + 4;
   const svgH = topPad + 7 * cellH + bottomPad;
 
