@@ -519,17 +519,7 @@ function renderEZ(){
     </div>
   </div>
 
-  <!-- L4: CSAT — largura total -->
-  <div class="row" style="grid-template-columns:1fr;">
-    <div class="card line-l4" data-s="none" style="height:auto;">
-      <div class="card-ab" style="height:auto;padding-bottom:16px;">
-        <div class="c-header"><div class="c-title pill-l4">CSAT</div><div class="c-sub">Pesquisa de satisfação</div></div>
-        <div class="csat-ph" style="margin-top:8px;"><span>— —</span><small>${csatTotal>0?csatTotal+' avaliações':'Disponível ao fim do mês'}</small></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- L5: Performance por Agente — largura total -->
+  <!-- L4: Performance por Agente — largura total -->
   <div class="row" style="grid-template-columns:1fr;">
     <div class="card line-l3" data-s="none" style="height:auto;">
       <div class="card-ab" style="height:auto;padding-bottom:16px;">
