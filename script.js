@@ -514,7 +514,7 @@ function renderEZ(){
     <div class="card line-l3" data-s="none" style="height:auto;">
       <div class="card-ab" style="height:auto;padding-bottom:16px;">
         <div class="c-header"><div class="c-title pill-l3">Picos de Demanda</div><div class="c-sub">Mapa de calor · dia da semana × hora do dia</div></div>
-        <div id="ez-heatmap" style="margin-top:8px;max-height:200px;overflow:hidden;"></div>
+        <div id="ez-heatmap" style="margin-top:8px;overflow:hidden;"></div>
       </div>
     </div>
   </div>
@@ -597,9 +597,9 @@ function buildHeatmap(data) {
     return (val / maxVal) > 0.45 ? '#FFF8F0' : '#8B7040';
   }
 
-  // Dimensões — largura total, células generosas
-  const cellW = 16, cellH = 20;
-  const leftPad = 28, topPad = 16, bottomPad = 16;
+  // Dimensões — altura fixa, largura escala proporcionalmente
+  const cellW = 22, cellH = 22;
+  const leftPad = 32, topPad = 18, bottomPad = 18;
   const svgW = leftPad + 24 * cellW + 4;
   const svgH = topPad + 7 * cellH + bottomPad;
 
@@ -650,8 +650,8 @@ function buildHeatmap(data) {
     }
   }
 
-  el.innerHTML = `<svg viewBox="0 0 ${svgW} ${svgH}" width="100%"
-    xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible;">${inner}</svg>`;
+  el.innerHTML = `<svg viewBox="0 0 ${svgW} ${svgH}" height="${svgH}" width="100%" preserveAspectRatio="xMinYMid meet"
+    xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:100%;">${inner}</svg>`;
 
   // Tooltip
   const oldTip = document.querySelector('.sp-tip[data-id="heatmap"]');
