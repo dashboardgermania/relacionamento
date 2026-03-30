@@ -608,8 +608,8 @@ function buildHeatmap(data) {
   }
 
   // Dimensões — largura total, células generosas
-  const cellW = 28, cellH = 30;
-  const leftPad = 36, topPad = 22, bottomPad = 22;
+  const cellW = 20, cellH = 24;
+  const leftPad = 32, topPad = 18, bottomPad = 18;
   const svgW = leftPad + 24 * cellW + 4;
   const svgH = topPad + 7 * cellH + bottomPad;
 
@@ -627,9 +627,9 @@ function buildHeatmap(data) {
   // Células + labels de dia
   for (let d = 0; d < 7; d++) {
     const y = topPad + d * cellH;
-    inner += `<text x="${leftPad - 4}" y="${y + cellH/2 + 3.5}"
+    inner += `<text x="${leftPad - 4}" y="${y + cellH/2 + 4}"
       text-anchor="end" font-family="Barlow Condensed,sans-serif"
-      font-size="10" font-weight="500" fill="#A89870">${DAYS[d]}</text>`;
+      font-size="9" font-weight="600" fill="#A89870">${DAYS[d]}</text>`;
 
     for (let h = 0; h < 24; h++) {
       const x = leftPad + h * cellW;
@@ -641,7 +641,7 @@ function buildHeatmap(data) {
       if (val > 0) {
         inner += `<text x="${x + cellW/2}" y="${y + cellH/2 + 4}"
           text-anchor="middle" font-family="Barlow Condensed,sans-serif"
-          font-size="11" font-weight="600" fill="${textColor(val)}"
+          font-size="10" font-weight="600" fill="${textColor(val)}"
           pointer-events="none">${val}</text>`;
       }
     }
@@ -656,7 +656,7 @@ function buildHeatmap(data) {
     if (tot > 0) {
       inner += `<text x="${leftPad + h*cellW + cellW/2}" y="${topPad + 7*cellH + bottomPad - 5}"
         text-anchor="middle" font-family="Barlow Condensed,sans-serif"
-        font-size="10" fill="rgba(168,152,112,0.7)">${tot}</text>`;
+        font-size="9" fill="rgba(168,152,112,0.7)">${tot}</text>`;
     }
   }
 
