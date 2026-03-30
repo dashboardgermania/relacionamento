@@ -88,6 +88,7 @@ function processEZ(rows) {
       TPI_sec: primeira._tpi,
       TMA_sec: tma,
       DataStr: dataStr,
+      Hour: d ? d.getHours() : -1,
       Ativo: primeira['Ativo'] || '',
       Agente: agente,
       Classificacao: ultima['Classificações'] || '',
@@ -450,24 +451,7 @@ function renderEZ(){
   // Cores por classificação
   const classColors=['#3D6490','#2E6644','#6B4E10','#8B3A8B','#C8941A','#9BA8B0'];
 
-  // Donut SVG ativo/receptivo
-  const total2=ativo+recep||1;
-  const atvPct=ativo/total2;
-  const recPct=recep/total2;
-  const R=44,CX=50,CY=50,CIRC=2*Math.PI*R;
-  const atvOff=CIRC-(atvPct*CIRC);
-  const recArc=recPct*CIRC;
 
-  const donutSVG=`<svg width="100" height="100" viewBox="0 0 100 100">
-    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(140,110,70,0.12)" stroke-width="10"/>
-    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="#3D6490" stroke-width="10"
-      stroke-dasharray="${(atvPct*CIRC).toFixed(1)} ${CIRC.toFixed(1)}"
-      stroke-dashoffset="${(CIRC/4).toFixed(1)}" stroke-linecap="round"/>
-    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="#2E6644" stroke-width="10"
-      stroke-dasharray="${recArc.toFixed(1)} ${CIRC.toFixed(1)}"
-      stroke-dashoffset="${(CIRC/4-atvPct*CIRC).toFixed(1)}" stroke-linecap="round"/>
-    <text x="${CX}" y="${CY+5}" text-anchor="middle" font-family="Barlow Condensed,sans-serif" font-size="12" font-weight="600" fill="#1A1208">${Math.round(recPct*100)}%</text>
-  </svg>`;
 
   // Montar HTML
   const html=`
@@ -524,17 +508,9 @@ function renderEZ(){
       </div>
     </div>
     <div class="card line-l2" data-s="none">
-      <div class="card-ab">
-        <div class="c-header"><div class="c-title pill-l2">Ativo vs Receptivo</div><div class="c-sub">Origem dos atendimentos</div></div>
-        <div class="c-center">
-          <div class="ez-donut-wrap">
-            ${donutSVG}
-            <div class="ez-legend">
-              <div class="ez-leg-item"><div class="ez-leg-dot" style="background:#2E6644;"></div>Receptivo: ${recep} (${Math.round(recPct*100)}%)</div>
-              <div class="ez-leg-item"><div class="ez-leg-dot" style="background:#3D6490;"></div>Ativo: ${ativo} (${Math.round(atvPct*100)}%)</div>
-            </div>
-          </div>
-        </div>
+      <div class="card-ab" style="padding-bottom:12px;">
+        <div class="c-header"><div class="c-title pill-l2">Picos de Demanda</div><div class="c-sub">Mapa de calor · dia da semana × hora do dia</div></div>
+        <div id="ez-heatmap" style="margin-top:8px;flex:1;min-height:0;overflow:hidden;"></div>
       </div>
     </div>
     <div class="card line-l2" data-s="none">
@@ -581,6 +557,128 @@ function renderEZ(){
   </div>`;
 
   document.getElementById('ez-main').innerHTML=html;
+  buildHeatmap(data);
+}
+
+
+/* ══ MAPA DE CALOR — PICOS DE DEMANDA ══ */
+function buildHeatmap(data) {
+  const el = document.getElementById('ez-heatmap');
+  if (!el) return;
+
+  const DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+  // Matriz [diaDaSemana 0-6][hora 0-23] = contagem
+  const matrix = Array.from({length: 7}, () => new Array(24).fill(0));
+
+  data.forEach(d => {
+    if (d.Hour < 0 || d.Hour > 23) return;
+    const dt = new Date(d.DataStr + 'T12:00:00');
+    if (isNaN(dt)) return;
+    matrix[dt.getDay()][d.Hour]++;
+  });
+
+  const maxVal = Math.max(...matrix.flat(), 1);
+
+  // Paleta Germânia: transparente → creme → gold → vermelho
+  function getColor(val) {
+    if (val === 0) return 'rgba(200,185,160,0.10)';
+    const t = val / maxVal;
+    if (t <= 0.33) {
+      const p = t / 0.33;
+      // #F1E3CE → #FFA62C
+      return `rgb(${Math.round(241+(255-241)*p)},${Math.round(227+(166-227)*p)},${Math.round(206+(44-206)*p)})`;
+    } else {
+      const p = (t - 0.33) / 0.67;
+      // #FFA62C → #C92B1E
+      return `rgb(${Math.round(255+(201-255)*p)},${Math.round(166+(43-166)*p)},${Math.round(44+(30-44)*p)})`;
+    }
+  }
+
+  function textColor(val) {
+    return (val / maxVal) > 0.45 ? '#FFF8F0' : '#8B7040';
+  }
+
+  // Dimensões responsivas
+  const cellW = 18, cellH = 22;
+  const leftPad = 30, topPad = 18, bottomPad = 18;
+  const svgW = leftPad + 24 * cellW + 2;
+  const svgH = topPad + 7 * cellH + bottomPad;
+
+  let inner = '';
+
+  // Labels de hora no topo (a cada 3h)
+  for (let h = 0; h < 24; h++) {
+    if (h % 3 === 0) {
+      inner += `<text x="${leftPad + h*cellW + cellW/2}" y="${topPad - 4}"
+        text-anchor="middle" font-family="Barlow Condensed,sans-serif"
+        font-size="9" fill="#A89870">${String(h).padStart(2,'0')}h</text>`;
+    }
+  }
+
+  // Células + labels de dia
+  for (let d = 0; d < 7; d++) {
+    const y = topPad + d * cellH;
+    inner += `<text x="${leftPad - 4}" y="${y + cellH/2 + 3.5}"
+      text-anchor="end" font-family="Barlow Condensed,sans-serif"
+      font-size="10" font-weight="500" fill="#A89870">${DAYS[d]}</text>`;
+
+    for (let h = 0; h < 24; h++) {
+      const x = leftPad + h * cellW;
+      const val = matrix[d][h];
+      const fill = getColor(val);
+      inner += `<rect x="${x+1}" y="${y+1}" width="${cellW-2}" height="${cellH-2}"
+        rx="2" fill="${fill}"
+        data-val="${val}" data-day="${DAYS[d]}" data-hour="${String(h).padStart(2,'0')}h"/>`;
+      if (val > 0) {
+        inner += `<text x="${x + cellW/2}" y="${y + cellH/2 + 3.5}"
+          text-anchor="middle" font-family="Barlow Condensed,sans-serif"
+          font-size="8" font-weight="600" fill="${textColor(val)}"
+          pointer-events="none">${val}</text>`;
+      }
+    }
+  }
+
+  // Linha de total por hora na base
+  inner += `<text x="${leftPad - 4}" y="${topPad + 7*cellH + bottomPad - 4}"
+    text-anchor="end" font-family="Barlow Condensed,sans-serif"
+    font-size="9" fill="rgba(168,152,112,0.6)">total</text>`;
+  for (let h = 0; h < 24; h++) {
+    const tot = matrix.reduce((s, row) => s + row[h], 0);
+    if (tot > 0) {
+      inner += `<text x="${leftPad + h*cellW + cellW/2}" y="${topPad + 7*cellH + bottomPad - 4}"
+        text-anchor="middle" font-family="Barlow Condensed,sans-serif"
+        font-size="8" fill="rgba(168,152,112,0.7)">${tot}</text>`;
+    }
+  }
+
+  el.innerHTML = `<svg viewBox="0 0 ${svgW} ${svgH}" width="100%"
+    xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible;">${inner}</svg>`;
+
+  // Tooltip
+  const oldTip = document.querySelector('.sp-tip[data-id="heatmap"]');
+  if (oldTip) oldTip.remove();
+  const tip = document.createElement('div');
+  tip.className = 'sp-tip';
+  tip.dataset.id = 'heatmap';
+  document.body.appendChild(tip);
+
+  el.querySelectorAll('rect').forEach(r => {
+    r.style.cursor = 'default';
+    r.addEventListener('mouseenter', e => {
+      const val = r.dataset.val;
+      if (val === '0') return;
+      tip.textContent = `${r.dataset.day} ${r.dataset.hour}: ${val} ticket${val != '1' ? 's' : ''}`;
+      tip.style.left = (e.clientX + 12) + 'px';
+      tip.style.top  = (e.clientY - 32) + 'px';
+      tip.style.opacity = '1';
+    });
+    r.addEventListener('mousemove', e => {
+      tip.style.left = (e.clientX + 12) + 'px';
+      tip.style.top  = (e.clientY - 32) + 'px';
+    });
+    r.addEventListener('mouseleave', () => { tip.style.opacity = '0'; });
+  });
 }
 
 function go(){
