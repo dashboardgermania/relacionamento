@@ -497,7 +497,7 @@ function renderEZ(){
     <div class="card line-l2" data-s="none" style="height:auto;">
       <div class="card-ab" style="height:auto;padding-bottom:16px;">
         <div class="c-header"><div class="c-title pill-l2">Classificação dos Tickets</div><div class="c-sub">Distribuição por tipo de resultado</div></div>
-        <div style="margin-top:10px;">
+        <div style="margin-top:10px;width:100%;">
           ${classSort.map(([label,count],i)=>`
             <div class="ez-bar-row">
               <div class="ez-bar-label">${label}</div>
@@ -646,8 +646,8 @@ function buildHeatmap(data) {
     }
   }
 
-  el.innerHTML = `<svg viewBox="0 0 ${svgW} ${svgH}" height="${svgH}" width="100%" preserveAspectRatio="xMinYMid meet"
-    xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:100%;">${inner}</svg>`;
+  el.innerHTML = `<svg viewBox="0 0 ${svgW} ${svgH}" width="100%" preserveAspectRatio="xMidYMid meet"
+    xmlns="http://www.w3.org/2000/svg" style="display:block;">${inner}</svg>`;
 
   // Tooltip
   const oldTip = document.querySelector('.sp-tip[data-id="heatmap"]');
