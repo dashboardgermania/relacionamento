@@ -492,9 +492,9 @@ function renderEZ(){
     </div>
   </div>
 
-  <!-- L2: Classificação dos Tickets — largura total -->
-  <div class="row" style="grid-template-columns:1fr;">
-    <div class="card line-l2" data-s="none" style="height:auto;min-height:var(--h-ab);">
+  <!-- L2: Classificação dos Tickets + Picos de Demanda — lado a lado -->
+  <div class="row" style="grid-template-columns:1fr 1fr;">
+    <div class="card line-l2" data-s="none" style="height:auto;">
       <div class="card-ab" style="height:auto;padding-bottom:16px;">
         <div class="c-header"><div class="c-title pill-l2">Classificação dos Tickets</div><div class="c-sub">Distribuição por tipo de resultado</div></div>
         <div style="margin-top:10px;">
@@ -507,13 +507,9 @@ function renderEZ(){
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- L3: Picos de Demanda — largura total, altura generosa -->
-  <div class="row" style="grid-template-columns:1fr;">
-    <div class="card line-l3" data-s="none" style="height:auto;">
+    <div class="card line-l2" data-s="none" style="height:auto;">
       <div class="card-ab" style="height:auto;padding-bottom:16px;">
-        <div class="c-header"><div class="c-title pill-l3">Picos de Demanda</div><div class="c-sub">Mapa de calor · dia da semana × hora do dia</div></div>
+        <div class="c-header"><div class="c-title pill-l2">Picos de Demanda</div><div class="c-sub">Mapa de calor · dia da semana × hora do dia</div></div>
         <div id="ez-heatmap" style="margin-top:8px;overflow:hidden;"></div>
       </div>
     </div>
