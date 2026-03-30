@@ -514,7 +514,7 @@ function renderEZ(){
     <div class="card line-l3" data-s="none" style="height:auto;">
       <div class="card-ab" style="height:auto;padding-bottom:16px;">
         <div class="c-header"><div class="c-title pill-l3">Picos de Demanda</div><div class="c-sub">Mapa de calor · dia da semana × hora do dia</div></div>
-        <div id="ez-heatmap" style="margin-top:10px;"></div>
+        <div id="ez-heatmap" style="margin-top:8px;max-height:200px;overflow:hidden;"></div>
       </div>
     </div>
   </div>
@@ -598,8 +598,8 @@ function buildHeatmap(data) {
   }
 
   // Dimensões — largura total, células generosas
-  const cellW = 20, cellH = 24;
-  const leftPad = 32, topPad = 18, bottomPad = 18;
+  const cellW = 16, cellH = 20;
+  const leftPad = 28, topPad = 16, bottomPad = 16;
   const svgW = leftPad + 24 * cellW + 4;
   const svgH = topPad + 7 * cellH + bottomPad;
 
