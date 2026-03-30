@@ -492,8 +492,8 @@ function renderEZ(){
     </div>
   </div>
 
-  <!-- L2: Classificação · Ativo/Receptivo · CSAT -->
-  <div class="row">
+  <!-- L2: Classificação dos Tickets — largura total -->
+  <div class="row" style="grid-template-columns:1fr;">
     <div class="card line-l2" data-s="none" style="height:auto;min-height:var(--h-ab);">
       <div class="card-ab" style="height:auto;padding-bottom:16px;">
         <div class="c-header"><div class="c-title pill-l2">Classificação dos Tickets</div><div class="c-sub">Distribuição por tipo de resultado</div></div>
@@ -507,21 +507,29 @@ function renderEZ(){
         </div>
       </div>
     </div>
-    <div class="card line-l2" data-s="none">
-      <div class="card-ab" style="padding-bottom:12px;">
-        <div class="c-header"><div class="c-title pill-l2">Picos de Demanda</div><div class="c-sub">Mapa de calor · dia da semana × hora do dia</div></div>
-        <div id="ez-heatmap" style="margin-top:8px;flex:1;min-height:0;overflow:hidden;"></div>
-      </div>
-    </div>
-    <div class="card line-l2" data-s="none">
-      <div class="card-ab">
-        <div class="c-header"><div class="c-title pill-l2">CSAT</div><div class="c-sub">Pesquisa de satisfação</div></div>
-        <div class="csat-ph" style="flex:1;margin-top:8px;"><span>— —</span><small>${csatTotal>0?csatTotal+' avaliações':'Disponível ao fim do mês'}</small></div>
+  </div>
+
+  <!-- L3: Picos de Demanda — largura total, altura generosa -->
+  <div class="row" style="grid-template-columns:1fr;">
+    <div class="card line-l3" data-s="none" style="height:auto;">
+      <div class="card-ab" style="height:auto;padding-bottom:16px;">
+        <div class="c-header"><div class="c-title pill-l3">Picos de Demanda</div><div class="c-sub">Mapa de calor · dia da semana × hora do dia</div></div>
+        <div id="ez-heatmap" style="margin-top:10px;"></div>
       </div>
     </div>
   </div>
 
-  <!-- L3: Tabela performance -->
+  <!-- L4: CSAT — largura total -->
+  <div class="row" style="grid-template-columns:1fr;">
+    <div class="card line-l4" data-s="none" style="height:auto;">
+      <div class="card-ab" style="height:auto;padding-bottom:16px;">
+        <div class="c-header"><div class="c-title pill-l4">CSAT</div><div class="c-sub">Pesquisa de satisfação</div></div>
+        <div class="csat-ph" style="margin-top:8px;"><span>— —</span><small>${csatTotal>0?csatTotal+' avaliações':'Disponível ao fim do mês'}</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- L5: Performance por Agente — largura total -->
   <div class="row" style="grid-template-columns:1fr;">
     <div class="card line-l3" data-s="none" style="height:auto;">
       <div class="card-ab" style="height:auto;padding-bottom:16px;">
@@ -599,10 +607,10 @@ function buildHeatmap(data) {
     return (val / maxVal) > 0.45 ? '#FFF8F0' : '#8B7040';
   }
 
-  // Dimensões responsivas
-  const cellW = 18, cellH = 22;
-  const leftPad = 30, topPad = 18, bottomPad = 18;
-  const svgW = leftPad + 24 * cellW + 2;
+  // Dimensões — largura total, células generosas
+  const cellW = 28, cellH = 30;
+  const leftPad = 36, topPad = 22, bottomPad = 22;
+  const svgW = leftPad + 24 * cellW + 4;
   const svgH = topPad + 7 * cellH + bottomPad;
 
   let inner = '';
@@ -631,9 +639,9 @@ function buildHeatmap(data) {
         rx="2" fill="${fill}"
         data-val="${val}" data-day="${DAYS[d]}" data-hour="${String(h).padStart(2,'0')}h"/>`;
       if (val > 0) {
-        inner += `<text x="${x + cellW/2}" y="${y + cellH/2 + 3.5}"
+        inner += `<text x="${x + cellW/2}" y="${y + cellH/2 + 4}"
           text-anchor="middle" font-family="Barlow Condensed,sans-serif"
-          font-size="8" font-weight="600" fill="${textColor(val)}"
+          font-size="11" font-weight="600" fill="${textColor(val)}"
           pointer-events="none">${val}</text>`;
       }
     }
@@ -646,9 +654,9 @@ function buildHeatmap(data) {
   for (let h = 0; h < 24; h++) {
     const tot = matrix.reduce((s, row) => s + row[h], 0);
     if (tot > 0) {
-      inner += `<text x="${leftPad + h*cellW + cellW/2}" y="${topPad + 7*cellH + bottomPad - 4}"
+      inner += `<text x="${leftPad + h*cellW + cellW/2}" y="${topPad + 7*cellH + bottomPad - 5}"
         text-anchor="middle" font-family="Barlow Condensed,sans-serif"
-        font-size="8" fill="rgba(168,152,112,0.7)">${tot}</text>`;
+        font-size="10" fill="rgba(168,152,112,0.7)">${tot}</text>`;
     }
   }
 
