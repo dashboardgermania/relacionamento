@@ -39,17 +39,39 @@
 </div>
 <div class="filters-wrap">
   <div class="filters">
-    <div class="f-group"><span class="f-lbl">Período</span><input type="date" class="f-input" id="f-de" value=""  onchange="go()"><span class="f-sep">até</span><input type="date" class="f-input" id="f-ate" value=""  onchange="go()"></div>
+    <div class="f-group">
+      <span class="f-lbl">Mês</span>
+      <select class="f-sel" id="f-mes" onchange="go()">
+        <option value="1">Janeiro</option>
+        <option value="2">Fevereiro</option>
+        <option value="3">Março</option>
+        <option value="4">Abril</option>
+        <option value="5">Maio</option>
+        <option value="6">Junho</option>
+        <option value="7">Julho</option>
+        <option value="8">Agosto</option>
+        <option value="9">Setembro</option>
+        <option value="10">Outubro</option>
+        <option value="11">Novembro</option>
+        <option value="12">Dezembro</option>
+      </select>
+    </div>
+    <div class="f-group">
+      <span class="f-lbl">Semana</span>
+      <select class="f-sel" id="f-sem" onchange="go()">
+        <option value="0">Todo o mês</option>
+        <option value="1">Semana 1</option>
+        <option value="2">Semana 2</option>
+        <option value="3">Semana 3</option>
+        <option value="4">Semana 4</option>
+      </select>
+    </div>
     <div class="f-group f-shortcuts">
       <button class="btn-sh" onclick="setShortcut('mes-atual')">Este mês</button>
       <button class="btn-sh" onclick="setShortcut('mes-passado')">Mês passado</button>
-      <button class="btn-sh" onclick="setShortcut('15d')">Últimos 15 dias</button>
-      <button class="btn-sh" onclick="setShortcut('7d')">Últimos 7 dias</button>
-      <button class="btn-sh" onclick="setShortcut('hoje')">Hoje</button>
     </div>
-    <span class="f-pipe">|</span><div class="f-group"><span class="f-lbl">Responsável</span><select class="f-sel" id="f-resp" onchange="go()"><option value="">Todos</option><option>Taciana</option><option>Lídia</option><option>Raiza</option><option>Mirian</option><option>Marciano</option></select></div>
-    
-    <button class="btn-f" onclick="go()">FILTRAR</button><button class="btn-c" onclick="reset()">LIMPAR</button>
+    <button class="btn-f" onclick="go()">FILTRAR</button>
+    <button class="btn-c" onclick="reset()">LIMPAR</button>
     <span class="f-upd">Atualizado em: <span id="upd-date"></span></span>
   </div>
 </div>
@@ -197,7 +219,24 @@
 </div>
 
 <!-- ABA EZ -->
-<div id="tab-ez" class="tab-content"><div class="main" id="ez-main"></div></div>
+<div id="tab-ez" class="tab-content">
+  <div class="filters-wrap" style="border-bottom:1px solid rgba(180,165,140,0.15);">
+    <div class="filters" style="padding-top:10px;padding-bottom:10px;">
+      <div class="f-group">
+        <span class="f-lbl">Agente</span>
+        <select class="f-sel" id="f-resp" onchange="ezRendered=false;renderEZ()">
+          <option value="">Todos</option>
+          <option>Taciana</option>
+          <option>Lídia</option>
+          <option>Raiza</option>
+          <option>Mirian</option>
+          <option>Marciano</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="main" id="ez-main"></div>
+</div>
 
 <!-- ABA METAS -->
 <div id="tab-metas" class="tab-content"><div class="main" style="padding:40px;text-align:center;color:var(--txt-faint);font-family:'Barlow Condensed',sans-serif;font-size:16px;letter-spacing:1px;">Em breve</div></div>
