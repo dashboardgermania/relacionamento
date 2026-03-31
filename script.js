@@ -94,23 +94,22 @@ function parseSemanal(text) {
   return result;
 }
 
-/* ── SEMANAS NO RANGE DE DATAS ── */
-function getWeeksInRange(de, ate) {
-  const start = new Date(de + 'T00:00:00');
-  const end   = new Date(ate + 'T23:59:59');
-  const year  = start.getFullYear();
-  const result = [];
-  for (let m = 1; m <= 12; m++) {
-    const daysInMonth = new Date(year, m, 0).getDate();
-    for (let s = 1; s <= 4; s++) {
-      const dayStart = (s-1)*7 + 1;
-      const dayEnd   = s === 4 ? daysInMonth : s*7;
-      const wStart = new Date(year, m-1, dayStart);
-      const wEnd   = new Date(year, m-1, dayEnd);
-      if (wStart <= end && wEnd >= start) result.push({mes: m, sem: s});
-    }
-  }
-  return result;
+/* ── FILTRO: semanas por mês+semana ── */
+function getWeeksForFilter(mes, sem) {
+  // sem=0 → mês todo (4 semanas); sem=1..4 → semana específica
+  if (!sem || sem === 0) return [1,2,3,4].map(s => ({mes, sem: s}));
+  return [{mes, sem}];
+}
+
+/* ── FILTRO: range de datas para EZ tickets ── */
+function getDateRangeForFilter(mes, sem) {
+  const year = new Date().getFullYear();
+  const pad  = n => String(n).padStart(2,'0');
+  const last = new Date(year, mes, 0).getDate();
+  if (!sem || sem === 0) return { de: `${year}-${pad(mes)}-01`, ate: `${year}-${pad(mes)}-${pad(last)}` };
+  const dayStart = (sem-1)*7 + 1;
+  const dayEnd   = sem === 4 ? last : sem*7;
+  return { de: `${year}-${pad(mes)}-${pad(dayStart)}`, ate: `${year}-${pad(mes)}-${pad(dayEnd)}` };
 }
 
 /* ── SOMA SEMANAL ── */
@@ -121,13 +120,6 @@ function sumSemanal(indicador, weeks) {
     if (d) { meta += d.meta||0; res += d.res||0; anoAnt += d.anoAnt||0; }
   });
   return {meta, res, anoAnt};
-}
-
-/* ── SEMANAS DO MÊS (para sparklines) ── */
-function getMonthWeeks(de) {
-  const d   = new Date(de + 'T12:00:00');
-  const mes = d.getMonth() + 1;
-  return [1,2,3,4].map(s => ({mes, sem: s, label: 'S'+s}));
 }
 
 /* ── PARSER EZ TICKETS ── */
@@ -346,26 +338,27 @@ function spark(id,vals,labs,fmtFn){
 
 /* ── VISÃO GERAL ── */
 function go(){
-  const de  = document.getElementById('f-de').value;
-  const ate = document.getElementById('f-ate').value;
-  const weeks = getWeeksInRange(de, ate);
+  const mes   = parseInt(document.getElementById('f-mes')?.value) || (new Date().getMonth()+1);
+  const sem   = parseInt(document.getElementById('f-sem')?.value) || 0;
+  const weeks = getWeeksForFilter(mes, sem);
 
-  const alc  = sumSemanal('Alcance', weeks);
-  const at   = sumSemanal('Engajamento / Atendimento', weeks);
-  const orc  = sumSemanal('Orçamentos', weeks);
-  const ped  = sumSemanal('Pedidos', weeks);
-  const lit  = sumSemanal('Litros vendidos', weeks);
-  const fat  = sumSemanal('Faturamento', weeks);
+  const alc = sumSemanal('Alcance', weeks);
+  const at  = sumSemanal('Engajamento / Atendimento', weeks);
+  const orc = sumSemanal('Orçamentos', weeks);
+  const ped = sumSemanal('Pedidos', weeks);
+  const lit = sumSemanal('Litros vendidos', weeks);
+  const fat = sumSemanal('Faturamento', weeks);
 
   const tAlc=alc.res,mrAlc=alc.meta;
-  const tAt=at.res,mrAt=at.meta;
+  const tAt=at.res;
   const tOrc=orc.res,mrO=orc.meta;
   const tPed=ped.res,mrP=ped.meta;
   const tLit=lit.res,mrL=lit.meta;
   const tRec=fat.res,mrR=fat.meta;
 
   const tmP=tPed?tRec/tPed:0, tmL=tPed?tLit/tPed:0, rL=tLit?tRec/tLit:0;
-  const d=dias(de,ate), aL=tLit?tLit/d:0, aR=tRec?tRec/d:0;
+  const nSem=weeks.length||1;
+  const aL=tLit/nSem, aR=tRec/nSem;
   const sO=st(tOrc,mrO),sL=st(tLit,mrL),sR=st(tRec,mrR),sP=st(tPed,mrP);
 
   document.getElementById('v-alc').textContent=fmt(Math.round(tAlc));
@@ -385,8 +378,8 @@ function go(){
   document.getElementById('bz-at').textContent=convAtOrc;
   document.getElementById('bz-orc').textContent=convAtOrc;
   document.getElementById('bz-ped').textContent=convOrcPed;
-  document.getElementById('bz-lit').textContent=fmt(Math.round(aL))+' L/dia em média';
-  document.getElementById('bz-rec').textContent='R$ '+fmt(Math.round(aR))+'/dia em média';
+  document.getElementById('bz-lit').textContent=fmt(Math.round(aL))+' L/semana em média';
+  document.getElementById('bz-rec').textContent='R$ '+fmt(Math.round(aR))+'/semana em média';
   document.getElementById('bz-tp').textContent='~R$ '+fmt(Math.round(tmP))+' por evento';
   document.getElementById('bz-tl').textContent='~'+tmL.toFixed(1)+' L por evento';
   document.getElementById('bz-rl').textContent='~R$ '+rL.toFixed(2).replace('.',',')+' por litro vendido';
@@ -406,13 +399,13 @@ function go(){
   circ('ci-lit',mrL?(tLit/mrL*100):0,SC[sL],pl(Math.round(tLit),Math.round(mrL)));
   circ('ci-rec',mrR?(tRec/mrR*100):0,SC[sR],pl(Math.round(tRec),Math.round(mrR)));
 
-  const mWeeks=getMonthWeeks(de);
-  SEM=mWeeks.map(w=>w.label);
+  // Sparklines — sempre mostra as 4 semanas do mês selecionado para contexto
+  SEM=['S1','S2','S3','S4'];
   const spP=[],spL=[],spR=[];
-  mWeeks.forEach(({mes,sem})=>{
-    const fv=SEMANAL_RAW['Faturamento']?.[mes]?.[sem]?.res||0;
-    const pv=SEMANAL_RAW['Pedidos']?.[mes]?.[sem]?.res||0;
-    const lv=SEMANAL_RAW['Litros vendidos']?.[mes]?.[sem]?.res||0;
+  [1,2,3,4].forEach(s=>{
+    const fv=SEMANAL_RAW['Faturamento']?.[mes]?.[s]?.res||0;
+    const pv=SEMANAL_RAW['Pedidos']?.[mes]?.[s]?.res||0;
+    const lv=SEMANAL_RAW['Litros vendidos']?.[mes]?.[s]?.res||0;
     spP.push(pv?fv/pv:0); spL.push(pv?lv/pv:0); spR.push(lv?fv/lv:0);
   });
   requestAnimationFrame(()=>{ spark('sp-tp',spP,SEM,fR); spark('sp-tl',spL,SEM,fL); spark('sp-rl',spR,SEM,v=>'R$'+v.toFixed(2).replace('.',',')); });
@@ -430,10 +423,12 @@ function go(){
     if(cvPctEl)cvPctEl.textContent=Math.min(cvPct,100).toFixed(0)+'%';
   }
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const deDate=new Date(de+'T12:00:00'),ateDate=new Date(ate+'T12:00:00');
-  const sameMonth=deDate.getMonth()===ateDate.getMonth()&&deDate.getFullYear()===ateDate.getFullYear();
   const resumoEl=document.getElementById('h-resumo-lbl');
-  if(resumoEl)resumoEl.textContent=sameMonth?'Resumo '+MESES[deDate.getMonth()]:'Resumo do Período';
+  if(resumoEl)resumoEl.textContent=sem?MESES[mes-1]+' · S'+sem:'Resumo '+MESES[mes-1];
+
+  // Atualiza EZ se a aba estiver ativa
+  ezRendered=false;
+  if(document.getElementById('tab-ez')?.classList.contains('active'))renderEZ();
 }
 
 /* ── ABA EZ ── */
@@ -441,9 +436,10 @@ let ezRendered=false;
 function renderEZ(){
   if(ezRendered)return;
   ezRendered=true;
-  const de=document.getElementById('f-de').value||'2026-01-01';
-  const ate=document.getElementById('f-ate').value||'2026-12-31';
-  const resp=document.getElementById('f-resp').value||'';
+  const mes  = parseInt(document.getElementById('f-mes')?.value) || (new Date().getMonth()+1);
+  const sem  = parseInt(document.getElementById('f-sem')?.value) || 0;
+  const resp = document.getElementById('f-resp')?.value || '';
+  const {de, ate} = getDateRangeForFilter(mes, sem);
 
   const data=EZ_TICKETS.filter(d=>{
     if(de&&d.DataStr<de)return false;
@@ -669,28 +665,21 @@ function renderHeatmapMatrix(DAYS,matrix){
 /* ── CONTROLES ── */
 function reset(){
   const today=new Date();
-  const pad=n=>String(n).padStart(2,'0');
-  const y=today.getFullYear(),m=today.getMonth();
-  const lastDay=new Date(y,m+1,0).getDate();
-  document.getElementById('f-de').value=y+'-'+pad(m+1)+'-01';
-  document.getElementById('f-ate').value=y+'-'+pad(m+1)+'-'+pad(lastDay);
-  document.getElementById('f-resp').value='';
+  const m=document.getElementById('f-mes'),s=document.getElementById('f-sem'),r=document.getElementById('f-resp');
+  if(m)m.value=String(today.getMonth()+1);
+  if(s)s.value='0';
+  if(r)r.value='';
   document.querySelectorAll('.btn-sh').forEach(b=>b.classList.remove('active'));
   go();
 }
 
 function setShortcut(type){
   const today=new Date();
-  const pad=n=>String(n).padStart(2,'0');
-  const fmt=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-  let de,ate;
-  if(type==='hoje'){de=ate=fmt(today);}
-  else if(type==='7d'){const s=new Date(today);s.setDate(today.getDate()-6);de=fmt(s);ate=fmt(today);}
-  else if(type==='15d'){const s=new Date(today);s.setDate(today.getDate()-14);de=fmt(s);ate=fmt(today);}
-  else if(type==='mes-atual'){de=fmt(new Date(today.getFullYear(),today.getMonth(),1));ate=fmt(new Date(today.getFullYear(),today.getMonth()+1,0));}
-  else if(type==='mes-passado'){de=fmt(new Date(today.getFullYear(),today.getMonth()-1,1));ate=fmt(new Date(today.getFullYear(),today.getMonth(),0));}
-  document.getElementById('f-de').value=de;
-  document.getElementById('f-ate').value=ate;
+  let mes=today.getMonth()+1, sem=0;
+  if(type==='mes-passado'){ mes=today.getMonth()||12; }
+  const m=document.getElementById('f-mes'),s=document.getElementById('f-sem');
+  if(m)m.value=String(mes);
+  if(s)s.value=String(sem);
   document.querySelectorAll('.btn-sh').forEach(b=>b.classList.remove('active'));
   event.target.classList.add('active');
   go();
@@ -706,15 +695,12 @@ function setTab(el){
   else if(tabName==='Metas')document.getElementById('tab-metas').classList.add('active');
 }
 
-/* ── DATAS PADRÃO ── */
+/* ── FILTROS PADRÃO — mês atual, todo o mês ── */
 (function(){
   const today=new Date();
-  const y=today.getFullYear();
-  const m=String(today.getMonth()+1).padStart(2,'0');
-  const last=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
-  const de=document.getElementById('f-de'),ate=document.getElementById('f-ate');
-  if(de)de.value=y+'-'+m+'-01';
-  if(ate)ate.value=y+'-'+m+'-'+String(last).padStart(2,'0');
+  const m=document.getElementById('f-mes'),s=document.getElementById('f-sem');
+  if(m)m.value=String(today.getMonth()+1);
+  if(s)s.value='0';
 })();
 
 const _upd=document.getElementById('upd-date');
