@@ -2,23 +2,36 @@
    CONFIGURAÇÃO — URLs do Google Sheets
    Publicar cada aba: Arquivo → Publicar na web → CSV
 ══════════════════════════════════════════ */
-const SHEETS_URL_RD  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS69WfTMMD5rXrETJATYKq-jBHIE414MjLwEgRdgB_o-ncM5bmWIF_5URzpXeWwY4j49IyflTSrDifw/pub?gid=390115291&single=true&output=csv'; // Cole aqui a URL da aba RD
-const SHEETS_URL_EZ  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS69WfTMMD5rXrETJATYKq-jBHIE414MjLwEgRdgB_o-ncM5bmWIF_5URzpXeWwY4j49IyflTSrDifw/pub?gid=880773931&single=true&output=csv'; // Cole aqui a URL da aba EZ
-const SHEETS_URL_ALC  = ''; // Cole aqui a URL da aba Alcance
-const SHEETS_URL_METAS = ''; // Cole aqui a URL da aba Metas
+const BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTj3u5RIJkXWM4DJP_vYx5VjJMC_PpHdk6C62daBJJE0hk1NJhB86UdahFIDB7AEUxZiJ5OEiVu5c_u/pub?single=true&output=csv&gid=';
 
-/* Dados em memória — preenchidos pelo fetch */
-let RD  = [];
-let EZ_PROTO = [];
+const SHEETS = {
+  SEMANAL:    BASE + '0',
+  MENSAL:     BASE + '1903273884',
+  EZ_RESUMO:  BASE + '370114971',
+  EZ_TICKETS: BASE + '351627180',
+  EZ_CLASS:   BASE + '992870913',
+  EZ_HEATMAP: BASE + '333353189',
+  EZ_PERF:    BASE + '1491480097',
+  EZ_AGENTES: ''
+};
 
-/* ── PARSER CSV ── */
+/* ── DADOS EM MEMÓRIA ── */
+let SEMANAL_RAW  = {};
+let EZ_TICKETS   = [];
+let EZ_RESUMO_D  = {};
+let EZ_CLASS_D   = [];
+let EZ_HEATMAP_D = [];
+let EZ_PERF_D    = [];
+
+const SC = {green:'#1E7A42', yellow:'#966A00', red:'#B82418', gray:'#9BA8B0'};
+let SEM = [];
+
+/* ── PARSER CSV GENÉRICO ── */
 function parseCSV(text, sep=',') {
   const lines = text.trim().split(/\r?\n/);
-  // Detectar e pular linha "sep=..."
   const start = lines[0].startsWith('sep=') ? 1 : 0;
   const headers = lines[start].split(sep).map(h => h.replace(/^"|"$/g,'').trim());
   return lines.slice(start+1).filter(l=>l.trim()).map(line => {
-    // Parser simples respeitando campos com vírgula entre aspas
     const vals = [];
     let cur = '', inQ = false;
     for (let c of line) {
@@ -33,155 +46,166 @@ function parseCSV(text, sep=',') {
   });
 }
 
-/* ── PARSER EZ BRUTO → EZ_PROTO ── */
-function processEZ(rows) {
-  const agentesValidos = ['Taciana', 'Lídia', 'Raiza'];
-  const RESP_MAP = {
-    'Taciana Daniela da silva campos': 'Taciana',
-    'Lídia Felix': 'Lídia',
-    'raiza.huguenin': 'Raiza'
-  };
-
-  function hmsToSec(s) {
-    if (!s || s === '-' || s === '0') return 0;
-    const p = String(s).trim().split(':');
-    if (p.length === 3) return +p[0]*3600 + +p[1]*60 + +p[2];
-    if (p.length === 2) return +p[0]*60 + +p[1];
-    return 0;
+/* ── PARSER NUMÉRICO pt-BR ── */
+function parseNum(s) {
+  if (s === null || s === undefined) return 0;
+  s = String(s).trim().replace(/^R\$\s*/, '').replace(/%\s*$/, '').replace(/\s/g,'');
+  if (!s) return 0;
+  const parts = s.split('.');
+  if (parts.length > 1 && parts.slice(1).every(p => p.length === 3)) {
+    s = parts.join('');
   }
-
-  // Filtrar humano e converter datas
-  const humanos = rows
-    .filter(r => (r['Tipo']||'').trim() === 'Humano')
-    .map(r => ({
-      ...r,
-      _date: new Date(r['Criado em'].replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1')),
-      _tpi: hmsToSec(r['Tempo para Primeira Interação']),
-      _tma: hmsToSec(r['Tempo de Atendimento']),
-      _agente: RESP_MAP[r['Nome do Agente']] || r['Nome do Agente']
-    }))
-    .sort((a,b) => a._date - b._date);
-
-  // Agrupar por protocolo
-  const protos = {};
-  humanos.forEach(r => {
-    const p = r['Protocolo'];
-    if (!protos[p]) protos[p] = [];
-    protos[p].push(r);
-  });
-
-  return Object.entries(protos).map(([proto, linhas]) => {
-    const primeira = linhas[0];
-    const ultima = [...linhas].reverse().find(r =>
-      ['Vendas','Sua Casa Nosso Bar','-'].includes(r['Nome do Departamento'])
-    ) || linhas[linhas.length-1];
-
-    const agente = RESP_MAP[ultima['Nome do Agente']] || ultima['Nome do Agente'];
-    if (!agentesValidos.includes(agente)) return null;
-
-    const tma = linhas.reduce((s,r) => s + r._tma, 0);
-    const d = primeira._date;
-    const dataStr = d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : '';
-
-    return {
-      Protocolo: proto,
-      TPI_sec: primeira._tpi,
-      TMA_sec: tma,
-      DataStr: dataStr,
-      Hour: d ? d.getHours() : -1,
-      Ativo: primeira['Ativo'] || '',
-      Agente: agente,
-      Classificacao: ultima['Classificações'] || '',
-      Status: ultima['Status'] || '',
-      'Avaliação CSAT': ultima['Avaliação CSAT'] || ''
-    };
-  }).filter(Boolean);
+  s = s.replace(',', '.');
+  return parseFloat(s) || 0;
 }
 
-/* ── PARSER RD BRUTO ── */
-function processRD(rows) {
-  const RESP_MAP = {
-    'Taciana Daniela da silva campos': 'Taciana',
-    'Lídia Felix': 'Lídia',
-    'raiza.huguenin': 'Raiza',
-    'Mirian Costa': 'Mirian',
-    'Marciano luis da silva': 'Marciano',
-    'Gabriel Costa': 'Gabriel'
-  };
-  return rows
-    .filter(r => (r['Funil de vendas']||'').trim() === '*Vendas Varejo B2C')
-    .map(r => {
-      const d = r['Data de criação'];
-      let dataStr = '';
-      if (d) {
-        const [dia,mes,ano] = d.split('/');
-        dataStr = `${ano}-${mes?.padStart(2,'0')}-${dia?.padStart(2,'0')}`;
+/* ── PARSER SEMANAL ── */
+function parseSemanal(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const dataLines = lines.slice(4).filter(l => l.trim());
+  const result = {};
+  let currentInd = '';
+  const TIPO_MAP = { 'Meta':'meta', 'Resultado':'res', 'Ano anterior':'anoAnt' };
+
+  dataLines.forEach(line => {
+    const vals = [];
+    let cur = '', inQ = false;
+    for (let c of line) {
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { vals.push(cur.trim().replace(/^"|"$/g,'')); cur = ''; }
+      else { cur += c; }
+    }
+    vals.push(cur.trim().replace(/^"|"$/g,''));
+    if (vals[0]) currentInd = vals[0].trim();
+    if (!currentInd) return;
+    const tipo = TIPO_MAP[vals[1]?.trim()];
+    if (!tipo) return;
+    if (!result[currentInd]) result[currentInd] = {};
+    for (let mes = 1; mes <= 12; mes++) {
+      if (!result[currentInd][mes]) result[currentInd][mes] = {};
+      for (let sem = 1; sem <= 4; sem++) {
+        const col = 2 + (mes-1)*4 + (sem-1);
+        if (!result[currentInd][mes][sem]) result[currentInd][mes][sem] = {meta:0, res:0, anoAnt:0};
+        const v = parseNum(vals[col]);
+        result[currentInd][mes][sem][tipo] = v;
       }
-      const sem = dataStr ? (() => {
-        const dt = new Date(dataStr);
-        const jan1 = new Date(dt.getFullYear(),0,1);
-        return Math.ceil(((dt - jan1)/86400000 + jan1.getDay()+1)/7);
-      })() : 0;
-      return {
-        Resp: RESP_MAP[r['Responsável']] || 'Outros',
-        Estado: r['Estado'] || '',
-        Etapa: r['Etapa'] || '',
-        'Valor Único': parseFloat(r['Valor Único'])||0,
-        Litragem_num: parseFloat(r['Litragem'])||0,
-        DataStr: dataStr,
-        Semana: sem
-      };
-    });
+    }
+  });
+  return result;
 }
 
+/* ── SEMANAS NO RANGE DE DATAS ── */
+function getWeeksInRange(de, ate) {
+  const start = new Date(de + 'T00:00:00');
+  const end   = new Date(ate + 'T23:59:59');
+  const year  = start.getFullYear();
+  const result = [];
+  for (let m = 1; m <= 12; m++) {
+    const daysInMonth = new Date(year, m, 0).getDate();
+    for (let s = 1; s <= 4; s++) {
+      const dayStart = (s-1)*7 + 1;
+      const dayEnd   = s === 4 ? daysInMonth : s*7;
+      const wStart = new Date(year, m-1, dayStart);
+      const wEnd   = new Date(year, m-1, dayEnd);
+      if (wStart <= end && wEnd >= start) result.push({mes: m, sem: s});
+    }
+  }
+  return result;
+}
 
-/* ── METAS DINÂMICAS ── */
-function getMetasMes(de, ate) {
-  if (!METAS_DATA.length) return METAS_DEFAULT;
-  // Usar mês da data inicial do filtro
-  const d = new Date(de);
+/* ── SOMA SEMANAL ── */
+function sumSemanal(indicador, weeks) {
+  let meta = 0, res = 0, anoAnt = 0;
+  weeks.forEach(({mes, sem}) => {
+    const d = SEMANAL_RAW[indicador]?.[mes]?.[sem];
+    if (d) { meta += d.meta||0; res += d.res||0; anoAnt += d.anoAnt||0; }
+  });
+  return {meta, res, anoAnt};
+}
+
+/* ── SEMANAS DO MÊS (para sparklines) ── */
+function getMonthWeeks(de) {
+  const d   = new Date(de + 'T12:00:00');
   const mes = d.getMonth() + 1;
-  const ano = d.getFullYear();
-  const row = METAS_DATA.find(r => +r['Mês'] === mes && +r['Ano'] === ano);
-  if (!row) return METAS_DEFAULT;
+  return [1,2,3,4].map(s => ({mes, sem: s, label: 'S'+s}));
+}
+
+/* ── PARSER EZ TICKETS ── */
+function processEZTickets(rows) {
+  return rows.map(r => {
+    const d = r['Data'] || '';
+    let dataStr = '';
+    if (d) {
+      const [dia, mes, ano] = d.split('/');
+      dataStr = `${ano}-${(mes||'').padStart(2,'0')}-${(dia||'').padStart(2,'0')}`;
+    }
+    return {
+      DataStr: dataStr,
+      Hora: parseInt(r['Hora']) || 0,
+      Agente: r['Agente'] || '',
+      Status: r['Status'] || '',
+      Finalizado: r['Finalizado'] === '1' || r['Finalizado'] === 1,
+      TPI_min: parseFloat(r['TPI_min']) || 0,
+      TMA_min: parseFloat(r['TMA_min']) || 0,
+      Classificacao: r['Classificacao_Principal'] || '',
+      Ativo: r['Ativo'] || ''
+    };
+  }).filter(r => r.DataStr);
+}
+
+/* ── PARSER EZ RESUMO ── */
+function processEZResumo(rows) {
+  const dataRow = rows.find(r => r['Total de Tickets'] || r['Período']);
+  if (!dataRow) return {};
   return {
-    orc: parseFloat(row['Orçamentos']) || 0,
-    ped: parseFloat(row['Pedidos'])    || 0,
-    lit: parseFloat(row['Litros'])     || 0,
-    rec: parseFloat(row['Receita'])    || 0
+    total:      parseFloat(dataRow['Total de Tickets']) || 0,
+    finalizados:parseFloat(dataRow['Tickets Finalizados']) || 0,
+    pctFin:     dataRow['% Finalizado'] || '—',
+    tpi:        dataRow['TPI Médio'] || '—',
+    tma:        dataRow['TMA Médio'] || '—',
+    periodo:    dataRow['Período'] || '—'
   };
 }
 
-/* ── PARSER ALCANCE ── */
-function processALC(rows) {
-  // Soma total de leads no período
-  return rows.reduce((s, r) => s + (parseFloat(r['Leads']) || 0), 0);
+/* ── PARSER EZ CLASSIFICAÇÕES ── */
+function processEZClass(rows) {
+  return rows
+    .filter(r => r['Classificação'] && r['Classificação'] !== 'Classificação')
+    .map(r => ({ label: r['Classificação'], tickets: parseFloat(r['Tickets'])||0, pct: parseFloat(r['% do Total'])||0 }))
+    .sort((a,b) => b.tickets - a.tickets).slice(0, 7);
 }
 
-/* ── PARSER METAS ── */
-function processMetas(rows) {
-  return rows.filter(r => r['Mês'] && r['Ano']);
+/* ── PARSER EZ MAPA DE CALOR ── */
+function processEZHeatmap(rows) {
+  return rows
+    .filter(r => r['Hora'] && /^\d{2}h$/.test(r['Hora']))
+    .map(r => ({
+      hora: parseInt(r['Hora']),
+      Seg: parseFloat(r['Seg'])||0, Ter: parseFloat(r['Ter'])||0,
+      Qua: parseFloat(r['Qua'])||0, Qui: parseFloat(r['Qui'])||0,
+      Sex: parseFloat(r['Sex'])||0, 'Sáb': parseFloat(r['Sáb'])||0,
+      Dom: parseFloat(r['Dom'])||0
+    }));
 }
 
-
-/* ── CALCULAR PART E REF DINAMICAMENTE ── */
-function calcPart() {
-  const vendidas = RD.filter(d => d.Estado === 'Vendida');
-  const total = vendidas.length || 1;
-  const agentes = ['Taciana','Lídia','Raiza'];
-  agentes.forEach(a => {
-    PART[a] = vendidas.filter(d => d.Resp === a).length / total;
-  });
-  // REF = média geral do período completo
-  const tRec = vendidas.reduce((s,d) => s + (d['Valor Único']||0), 0);
-  const tLit = vendidas.reduce((s,d) => s + (d.Litragem_num||0), 0);
-  const tPed = vendidas.length || 1;
-  REF.tp = tRec / tPed;
-  REF.tl = tLit / tPed;
-  REF.rl = tLit ? tRec / tLit : 0;
+/* ── PARSER EZ PERFORMANCE AGENTE ── */
+function processEZPerf(rows) {
+  return rows
+    .filter(r => r['Agente'] && r['Agente'] !== 'Agente' && r['Agente'] !== 'TOTAL')
+    .map(r => ({
+      nome:     r['Agente'],
+      tickets:  parseFloat(r['Tickets'])||0,
+      fin:      parseFloat(r['Finalizados'])||0,
+      pctFin:   parseFloat(r['% Finalizados'])||0,
+      tpiMed:   r['TPI Médio']||'—',
+      tmaMed:   r['TMA Médio']||'—',
+      tpiMin:   parseFloat(r['TPI (min)'])||0,
+      tmaMin:   parseFloat(r['TMA (min)'])||0,
+      topClass: r['Classif. Mais Frequente']||'—'
+    }));
 }
 
-/* ── ESTADO DE LOADING ── */
+/* ── LOADING ── */
 function setLoading(on) {
   const msg = document.getElementById('loading-msg');
   if (msg) msg.style.display = on ? 'flex' : 'none';
@@ -191,35 +215,22 @@ function setLoading(on) {
 async function loadData() {
   setLoading(true);
   try {
-    const promises = [];
-    if (SHEETS_URL_RD)    promises.push(fetch(SHEETS_URL_RD).then(r=>r.text()).then(t=>{ RD = processRD(parseCSV(t,',')); calcPart(); }));
-    else RD = [];
-    if (SHEETS_URL_EZ)    promises.push(fetch(SHEETS_URL_EZ).then(r=>r.text()).then(t=>{ EZ_PROTO = processEZ(parseCSV(t,',')); }));
-    else EZ_PROTO = [];
-    if (SHEETS_URL_ALC)   promises.push(fetch(SHEETS_URL_ALC).then(r=>r.text()).then(t=>{ ALC = processALC(parseCSV(t,',')); }));
-    if (SHEETS_URL_METAS) promises.push(fetch(SHEETS_URL_METAS).then(r=>r.text()).then(t=>{ METAS_DATA = processMetas(parseCSV(t,',')); }));
-    await Promise.all(promises);
-  } catch(e) {
-    console.warn('Erro ao carregar dados:', e);
-  }
-  console.log('RD carregado:', RD.length, 'registros');
-  console.log('EZ_PROTO carregado:', EZ_PROTO.length, 'registros');
-  console.log('METAS_DATA carregado:', METAS_DATA.length, 'registros');
-  console.log('ALC carregado:', ALC, 'leads');
+    await Promise.all([
+      fetch(SHEETS.SEMANAL).then(r=>r.text()).then(t=>{ SEMANAL_RAW = parseSemanal(t); }),
+      fetch(SHEETS.EZ_TICKETS).then(r=>r.text()).then(t=>{ EZ_TICKETS = processEZTickets(parseCSV(t)); }),
+      fetch(SHEETS.EZ_RESUMO).then(r=>r.text()).then(t=>{ EZ_RESUMO_D = processEZResumo(parseCSV(t)); }),
+      fetch(SHEETS.EZ_CLASS).then(r=>r.text()).then(t=>{ EZ_CLASS_D = processEZClass(parseCSV(t)); }),
+      fetch(SHEETS.EZ_HEATMAP).then(r=>r.text()).then(t=>{ EZ_HEATMAP_D = processEZHeatmap(parseCSV(t)); }),
+      fetch(SHEETS.EZ_PERF).then(r=>r.text()).then(t=>{ EZ_PERF_D = processEZPerf(parseCSV(t)); }),
+    ]);
+  } catch(e) { console.warn('Erro ao carregar dados:', e); }
+  console.log('SEMANAL_RAW:', Object.keys(SEMANAL_RAW));
+  console.log('EZ_TICKETS:', EZ_TICKETS.length, 'tickets');
   setLoading(false);
   go();
 }
 
-let PART={}; // calculado dinamicamente do RD;
-let METAS_DATA=[]; // [{Mes,Ano,Orçamentos,Pedidos,Litros,Receita}] via Sheets
-const METAS_DEFAULT={orc:0,lit:0,rec:0,ped:0};
-let REF={tp:0,tl:0,rl:0}; // calculado do RD ao carregar
-let ALC=0; // preenchido via Sheets
-const ORC_ETAPAS=['Proposta Comercial','Cadastro Pedido','Logística / Entrega','Pós Venda e Fidelização'];
-let SEM=[]; // gerado dinamicamente em go()
-const SC={green:'#1E7A42',yellow:'#966A00',red:'#B82418',gray:'#9BA8B0'};
-
-/* CÍRCULO — stroke 7px */
+/* ── UTILITÁRIOS VISUAIS ── */
 const CR=34,CCX=46,CCY=46,CSZ=92,CCIRC=2*Math.PI*CR;
 function circ(elId,pct,color,txt){
   const el=document.getElementById(elId);if(!el)return;
@@ -262,7 +273,6 @@ function hkpi(bId,vId,tId,val,mr,fn){
   const b=document.getElementById(bId),v=document.getElementById(vId);
   if(!v||!b)return;
   v.innerHTML=fn(val);
-  // Barra de progresso
   const barId=bId.replace('hk-','hb-');
   const bar=document.getElementById(barId);
   if(bar&&mr){
@@ -275,60 +285,16 @@ function hkpi(bId,vId,tId,val,mr,fn){
   }
   b.className='hk neu';
 }
-function mpr(mt,de,ate,resp){
-  let m=mt;if(resp&&PART[resp])m=mt*PART[resp];
-  const h=new Date(),i=new Date(de),f=new Date(ate);
-  const dp=Math.max(1,Math.round((f-i)/864e5)+1);
-  const fe=f<h?f:h,pp=Math.max(1,Math.round((fe-i)/864e5)+1);
-  return m*(pp/dp);
-}
 function dias(de,ate){return Math.max(1,Math.round((new Date(ate)-new Date(de))/864e5)+1);}
 function fmt(n){return n.toLocaleString('pt-BR');}
 function fR(n){return'R$'+Math.round(n).toLocaleString('pt-BR');}
 function fL(n){return Math.round(n)+'L';}
 
-function setShortcut(type){
-  const today = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const fmt = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-  let de, ate;
-  if(type==='hoje'){
-    de = ate = fmt(today);
-  } else if(type==='7d'){
-    const s = new Date(today); s.setDate(today.getDate()-6);
-    de = fmt(s); ate = fmt(today);
-  } else if(type==='15d'){
-    const s = new Date(today); s.setDate(today.getDate()-14);
-    de = fmt(s); ate = fmt(today);
-  } else if(type==='mes-atual'){
-    de = fmt(new Date(today.getFullYear(), today.getMonth(), 1));
-    ate = fmt(new Date(today.getFullYear(), today.getMonth()+1, 0));
-  } else if(type==='mes-passado'){
-    de = fmt(new Date(today.getFullYear(), today.getMonth()-1, 1));
-    ate = fmt(new Date(today.getFullYear(), today.getMonth(), 0));
-  }
-  document.getElementById('f-de').value = de;
-  document.getElementById('f-ate').value = ate;
-  // highlight ativo
-  document.querySelectorAll('.btn-sh').forEach(b=>b.classList.remove('active'));
-  event.target.classList.add('active');
-  go();
-}
-function setTab(el){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  const tabName = el.textContent.trim();
-  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
-  if(tabName==='Visão Geral') document.getElementById('tab-visao').classList.add('active');
-  else if(tabName==='Atendimento EZ'){document.getElementById('tab-ez').classList.add('active');renderEZ();}
-  else if(tabName==='Metas') document.getElementById('tab-metas').classList.add('active');
-}
 /* ── SPARKLINE ── */
 function spark(id,vals,labs,fmtFn){
   const wrap=document.getElementById(id);if(!wrap)return;
   wrap.innerHTML='';
-  const W=wrap.offsetWidth||220;
-  const H=wrap.offsetHeight||120;
+  const W=wrap.offsetWidth||220,H=wrap.offsetHeight||120;
   const pL=8,pR=12,pT=20,pB=20,uW=W-pL-pR,uH=H-pT-pB,n=vals.length;
   const valid=vals.filter(v=>v>0);if(!valid.length)return;
   const mn=Math.min(...valid)*0.88,mx=Math.max(...valid)*1.08,rng=mx-mn||1;
@@ -336,76 +302,150 @@ function spark(id,vals,labs,fmtFn){
   const ys=vals.map(v=>pT+uH-((v-mn)/rng)*uH);
   const pts=xs.map((x,i)=>`${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
   const area=`M${xs[0].toFixed(1)},${ys[0].toFixed(1)} ${xs.map((x,i)=>`L${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ')} L${xs[n-1].toFixed(1)},${(H-pB).toFixed(1)} L${xs[0].toFixed(1)},${(H-pB).toFixed(1)} Z`;
-
   const dotColors=vals.map((v,i)=>i===0?'#9BA8B0':v>=vals[i-1]?'#1E7A42':'#B82418');
-
   const vLbls=vals.map((v,i)=>{
     const a=i===0?'start':i===n-1?'end':'middle';
     return `<text x="${xs[i].toFixed(1)}" y="${(ys[i]-7).toFixed(1)}" text-anchor="${a}"
       font-family="Barlow Condensed,sans-serif" font-size="11" font-weight="600"
       fill="${dotColors[i]}">${fmtFn(v)}</text>`;
   }).join('');
-
   const sLbls=labs.map((l,i)=>{
     const a=i===0?'start':i===n-1?'end':'middle';
     return `<text x="${xs[i].toFixed(1)}" y="${(H-4).toFixed(1)}" text-anchor="${a}"
       font-family="Barlow Condensed,sans-serif" font-size="10" font-weight="400"
-      fill="#A89870">${l.split('·')[0].trim()}</text>`;
+      fill="#A89870">${l}</text>`;
   }).join('');
-
   const dots=vals.map((v,i)=>`<circle class="sd"
-    cx="${xs[i].toFixed(1)}" cy="${ys[i].toFixed(1)}"
-    r="4" fill="${dotColors[i]}" stroke="white" stroke-width="2"
-    style="cursor:pointer;transition:r 0.15s;"
-    data-v="${fmtFn(v)}" data-l="${labs[i].split('·')[0].trim()}"/>`).join('');
-
+    cx="${xs[i].toFixed(1)}" cy="${ys[i].toFixed(1)}" r="4" fill="${dotColors[i]}"
+    stroke="white" stroke-width="2" style="cursor:pointer;transition:r 0.15s;"
+    data-v="${fmtFn(v)}" data-l="${labs[i]}"/>`).join('');
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   svg.setAttribute('width','100%');svg.setAttribute('height','100%');
   svg.style.display='block';
-  svg.innerHTML=`
-    <path d="${area}" fill="rgba(180,160,120,0.08)"/>
+  svg.innerHTML=`<path d="${area}" fill="rgba(180,160,120,0.08)"/>
     <polyline points="${pts}" fill="none" stroke="#C4B89A" stroke-width="1.8"
       stroke-linejoin="round" stroke-linecap="round"/>
     ${vLbls}${dots}${sLbls}`;
-
-  // Remover tip anterior se existir
   const oldTip=document.querySelector('.sp-tip[data-id="'+id+'"]');
   if(oldTip)oldTip.remove();
   const tip=document.createElement('div');
   tip.className='sp-tip';tip.dataset.id=id;
   wrap.style.position='relative';
   document.body.appendChild(tip);wrap.appendChild(svg);
-
   svg.querySelectorAll('.sd').forEach(d=>{
     d.addEventListener('mouseenter',(e)=>{
       d.setAttribute('r','6');
       tip.textContent=d.dataset.l+': '+d.dataset.v;
-      tip.style.left=(e.clientX+12)+'px';
-      tip.style.top=(e.clientY-32)+'px';
-      tip.style.opacity='1';
+      tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-32)+'px';tip.style.opacity='1';
     });
-    d.addEventListener('mousemove',(e)=>{
-      tip.style.left=(e.clientX+12)+'px';
-      tip.style.top=(e.clientY-32)+'px';
-    });
+    d.addEventListener('mousemove',(e)=>{ tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-32)+'px'; });
     d.addEventListener('mouseleave',()=>{d.setAttribute('r','4');tip.style.opacity='0';});
   });
 }
 
+/* ── VISÃO GERAL ── */
+function go(){
+  const de  = document.getElementById('f-de').value;
+  const ate = document.getElementById('f-ate').value;
+  const weeks = getWeeksInRange(de, ate);
 
-/* ══ RENDER ABA EZ ══ */
+  const alc  = sumSemanal('Alcance', weeks);
+  const at   = sumSemanal('Engajamento / Atendimento', weeks);
+  const orc  = sumSemanal('Orçamentos', weeks);
+  const ped  = sumSemanal('Pedidos', weeks);
+  const lit  = sumSemanal('Litros vendidos', weeks);
+  const fat  = sumSemanal('Faturamento', weeks);
+
+  const tAlc=alc.res,mrAlc=alc.meta;
+  const tAt=at.res,mrAt=at.meta;
+  const tOrc=orc.res,mrO=orc.meta;
+  const tPed=ped.res,mrP=ped.meta;
+  const tLit=lit.res,mrL=lit.meta;
+  const tRec=fat.res,mrR=fat.meta;
+
+  const tmP=tPed?tRec/tPed:0, tmL=tPed?tLit/tPed:0, rL=tLit?tRec/tLit:0;
+  const d=dias(de,ate), aL=tLit?tLit/d:0, aR=tRec?tRec/d:0;
+  const sO=st(tOrc,mrO),sL=st(tLit,mrL),sR=st(tRec,mrR),sP=st(tPed,mrP);
+
+  document.getElementById('v-alc').textContent=fmt(Math.round(tAlc));
+  document.getElementById('v-at').textContent=fmt(Math.round(tAt));
+  document.getElementById('v-orc').textContent=fmt(Math.round(tOrc));
+  document.getElementById('v-ped').textContent=fmt(Math.round(tPed));
+  document.getElementById('v-lit').innerHTML=fmt(Math.round(tLit))+'<span class="u"> L</span>';
+  document.getElementById('v-rec').textContent='R$ '+fmt(Math.round(tRec));
+  document.getElementById('v-tp').textContent='R$ '+fmt(Math.round(tmP));
+  document.getElementById('v-tl').innerHTML=tmL.toFixed(1)+'<span class="u"> L</span>';
+  document.getElementById('v-rl').textContent='R$ '+rL.toFixed(2).replace('.',',');
+
+  const convAlcAt=tAlc?(tAt/tAlc*100).toFixed(1)+'% de conversão':'—';
+  const convAtOrc=tAt?(tOrc/tAt*100).toFixed(1)+'% de conversão':'—';
+  const convOrcPed=tOrc?(tPed/tOrc*100).toFixed(1)+'% de conversão':'—';
+  document.getElementById('bz-alc').textContent=convAlcAt;
+  document.getElementById('bz-at').textContent=convAtOrc;
+  document.getElementById('bz-orc').textContent=convAtOrc;
+  document.getElementById('bz-ped').textContent=convOrcPed;
+  document.getElementById('bz-lit').textContent=fmt(Math.round(aL))+' L/dia em média';
+  document.getElementById('bz-rec').textContent='R$ '+fmt(Math.round(aR))+'/dia em média';
+  document.getElementById('bz-tp').textContent='~R$ '+fmt(Math.round(tmP))+' por evento';
+  document.getElementById('bz-tl').textContent='~'+tmL.toFixed(1)+' L por evento';
+  document.getElementById('bz-rl').textContent='~R$ '+rL.toFixed(2).replace('.',',')+' por litro vendido';
+
+  setS('c-orc',sO);setS('c-ped',sP);setS('c-lit',sL);setS('c-rec',sR);
+  setTip('ct-alc',fmt(Math.round(tAt))+' atend de '+fmt(Math.round(tAlc))+' alcance');
+  setTip('ct-at',fmt(Math.round(tOrc))+' orc de '+fmt(Math.round(tAt))+' atend');
+  setTip('ct-orc','Meta: '+fmt(Math.round(mrO))+' · Real: '+fmt(Math.round(tOrc)));
+  setTip('ct-ped','Meta: '+fmt(Math.round(mrP))+' · Real: '+fmt(Math.round(tPed)));
+  setTip('ct-lit','Meta: '+fmt(Math.round(mrL))+'L · Real: '+fmt(Math.round(tLit))+'L');
+  setTip('ct-rec','Meta: R$ '+fmt(Math.round(mrR))+' · Real: R$ '+fmt(Math.round(tRec)));
+
+  circ('ci-alc',mrAlc?(tAlc/mrAlc*100):0,'#9BA8B0',pl(Math.round(tAlc),Math.round(mrAlc)));
+  circ('ci-at',tAlc?(tAt/tAlc*100):0,'#9BA8B0',tAlc?Math.round(tAt/tAlc*100)+'%':'—');
+  circ('ci-orc',mrO?(tOrc/mrO*100):0,SC[sO],pl(tOrc,mrO));
+  circ('ci-ped',mrP?(tPed/mrP*100):0,SC[sP],pl(tPed,mrP));
+  circ('ci-lit',mrL?(tLit/mrL*100):0,SC[sL],pl(Math.round(tLit),Math.round(mrL)));
+  circ('ci-rec',mrR?(tRec/mrR*100):0,SC[sR],pl(Math.round(tRec),Math.round(mrR)));
+
+  const mWeeks=getMonthWeeks(de);
+  SEM=mWeeks.map(w=>w.label);
+  const spP=[],spL=[],spR=[];
+  mWeeks.forEach(({mes,sem})=>{
+    const fv=SEMANAL_RAW['Faturamento']?.[mes]?.[sem]?.res||0;
+    const pv=SEMANAL_RAW['Pedidos']?.[mes]?.[sem]?.res||0;
+    const lv=SEMANAL_RAW['Litros vendidos']?.[mes]?.[sem]?.res||0;
+    spP.push(pv?fv/pv:0); spL.push(pv?lv/pv:0); spR.push(lv?fv/lv:0);
+  });
+  requestAnimationFrame(()=>{ spark('sp-tp',spP,SEM,fR); spark('sp-tl',spL,SEM,fL); spark('sp-rl',spR,SEM,v=>'R$'+v.toFixed(2).replace('.',',')); });
+
+  hkpi('hk-lit','hv-lit','ht-lit',tLit,mrL,v=>fmt(Math.round(v))+'<span class="u"> L</span>');
+  hkpi('hk-rec','hv-rec','ht-rec',tRec,mrR,v=>'R$'+Math.round(v/1000)+'k');
+  const cvPct=tOrc?(tPed/tOrc*100):0;
+  document.getElementById('hv-cv').textContent=tOrc?cvPct.toFixed(1)+'%':'—';
+  const cvBar=document.getElementById('hb-cv');
+  if(cvBar){
+    const s=cvPct>=50?'green':cvPct>=30?'yellow':'red';
+    cvBar.className='hk-bar '+s;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{cvBar.style.width=Math.min(cvPct,100).toFixed(1)+'%';}));
+    const cvPctEl=document.getElementById('hp-cv');
+    if(cvPctEl)cvPctEl.textContent=Math.min(cvPct,100).toFixed(0)+'%';
+  }
+  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const deDate=new Date(de+'T12:00:00'),ateDate=new Date(ate+'T12:00:00');
+  const sameMonth=deDate.getMonth()===ateDate.getMonth()&&deDate.getFullYear()===ateDate.getFullYear();
+  const resumoEl=document.getElementById('h-resumo-lbl');
+  if(resumoEl)resumoEl.textContent=sameMonth?'Resumo '+MESES[deDate.getMonth()]:'Resumo do Período';
+}
+
+/* ── ABA EZ ── */
 let ezRendered=false;
 function renderEZ(){
   if(ezRendered)return;
   ezRendered=true;
-
-  const de=document.getElementById('f-de').value||'2026-02-01';
-  const ate=document.getElementById('f-ate').value||'2026-03-23';
+  const de=document.getElementById('f-de').value||'2026-01-01';
+  const ate=document.getElementById('f-ate').value||'2026-12-31';
   const resp=document.getElementById('f-resp').value||'';
-  
-  // Filtrar por data e agente
-  let data=EZ_PROTO.filter(d=>{
+
+  const data=EZ_TICKETS.filter(d=>{
     if(de&&d.DataStr<de)return false;
     if(ate&&d.DataStr>ate)return false;
     if(resp&&d.Agente!==resp)return false;
@@ -413,96 +453,90 @@ function renderEZ(){
   });
 
   const total=data.length;
-  const tpiMed=data.reduce((s,d)=>s+(d.TPI_sec||0),0)/Math.max(total,1);
-  const tmaMed=data.reduce((s,d)=>s+(d.TMA_sec||0),0)/Math.max(total,1);
+  const tpiMed=data.reduce((s,d)=>s+(d.TPI_min||0),0)/Math.max(total,1);
+  const tmaMed=data.reduce((s,d)=>s+(d.TMA_min||0),0)/Math.max(total,1);
   const ativo=data.filter(d=>d.Ativo==='ATIVO').length;
   const recep=data.filter(d=>d.Ativo==='RECEPTIVO').length;
 
-  // Classificações
-  const classCount={};
-  data.forEach(d=>{
-    const c=(d.Classificacao||'Sem classificação').split(',')[0].trim();
-    classCount[c]=(classCount[c]||0)+1;
-  });
-  const classSort=Object.entries(classCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
-
-  // CSAT
-  const csatData=data.filter(d=>d['Avaliação CSAT']&&d['Avaliação CSAT']!=='-'&&d['Avaliação CSAT']);
-  const csatTotal=csatData.length;
-
-  // Performance por agente
-  const agentes=['Taciana','Lídia','Raiza'];
-  const perf=agentes.map(a=>{
-    const ag=data.filter(d=>d.Agente===a);
-    const fin=ag.filter(d=>d.Status==='Finalizado').length;
-    const tpi=ag.reduce((s,d)=>s+(d.TPI_sec||0),0)/Math.max(ag.length,1);
-    const tma=ag.reduce((s,d)=>s+(d.TMA_sec||0),0)/Math.max(ag.length,1);
-    const cc={};ag.forEach(d=>{const c=(d.Classificacao||'Sem class.').split(',')[0].trim();cc[c]=(cc[c]||0)+1;});
-    const topClass=Object.entries(cc).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
-    return {nome:a,tickets:ag.length,fin,tpi,tma,topClass};
-  });
-
-  function fmtMin(sec){
-    const m=Math.round(sec/60);
-    if(m<60)return m+'min';
-    return Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'min';
+  let classSort;
+  if(total>0){
+    const classCount={};
+    data.forEach(d=>{ const c=d.Classificacao||'Sem Classificação'; classCount[c]=(classCount[c]||0)+1; });
+    classSort=Object.entries(classCount).sort((a,b)=>b[1]-a[1]).slice(0,7)
+      .map(([label,count])=>({label,count,pct:count/total}));
+  } else {
+    classSort=EZ_CLASS_D.map(c=>({label:c.label,count:c.tickets,pct:c.pct}));
   }
 
-  // Cores por classificação
-  const classColors=['#3D6490','#2E6644','#6B4E10','#8B3A8B','#C8941A','#9BA8B0'];
+  let perf;
+  if(!resp&&EZ_PERF_D.length){
+    perf=EZ_PERF_D;
+  } else {
+    const agentes=[...new Set(data.map(d=>d.Agente))].filter(Boolean);
+    perf=agentes.map(a=>{
+      const ag=data.filter(d=>d.Agente===a);
+      const fin=ag.filter(d=>d.Status==='Finalizado').length;
+      const tpi=ag.reduce((s,d)=>s+(d.TPI_min||0),0)/Math.max(ag.length,1);
+      const tma=ag.reduce((s,d)=>s+(d.TMA_min||0),0)/Math.max(ag.length,1);
+      const cc={};ag.forEach(d=>{const c=d.Classificacao||'Sem class.';cc[c]=(cc[c]||0)+1;});
+      const topClass=Object.entries(cc).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
+      return{nome:a,tickets:ag.length,fin,pctFin:ag.length?fin/ag.length:0,tpiMin:tpi,tmaMin:tma,topClass};
+    });
+  }
 
+  function fmtMin(min){
+    min=Math.round(min);
+    if(min<60)return min+'min';
+    return Math.floor(min/60)+'h '+String(min%60).padStart(2,'0')+'min';
+  }
 
+  const classColors=['#3D6490','#2E6644','#6B4E10','#8B3A8B','#C8941A','#9BA8B0','#B85C38'];
+  const totalLabel=total>0?total.toLocaleString('pt-BR'):String(EZ_RESUMO_D.total||'—');
+  const bezLabel=total>0?ativo+' ativos · '+recep+' receptivos':(EZ_RESUMO_D.periodo||'—');
+  const tpiLabel=total>0?fmtMin(tpiMed):(EZ_RESUMO_D.tpi||'—');
+  const tmaLabel=total>0?fmtMin(tmaMed):(EZ_RESUMO_D.tma||'—');
 
-  // Montar HTML
   const html=`
-  <!-- L1: Total · TPI · TMA -->
   <div class="row">
     <div class="card line-l1" data-s="none">
       <div class="card-ab">
         <div class="c-header"><div class="c-title pill-l1">Total de Tickets</div><div class="c-sub">Protocolos com atendimento humano</div></div>
-        <div class="c-center">
-          <div class="c-val-block">
-            <div class="ez-kpi-val">${total.toLocaleString('pt-BR')}</div>
-            <span class="bezel neu">${ativo} ativos · ${recep} receptivos</span>
-          </div>
-        </div>
+        <div class="c-center"><div class="c-val-block">
+          <div class="ez-kpi-val">${totalLabel}</div>
+          <span class="bezel neu">${bezLabel}</span>
+        </div></div>
       </div>
     </div>
     <div class="card line-l1" data-s="none">
       <div class="card-ab">
         <div class="c-header"><div class="c-title pill-l1">TPI Médio</div><div class="c-sub">Tempo para primeira interação · equipe</div></div>
-        <div class="c-center">
-          <div class="c-val-block">
-            <div class="ez-kpi-val" style="font-size:38px;">${fmtMin(tpiMed)}</div>
-            <span class="bezel neu">tempo de resposta inicial</span>
-          </div>
-        </div>
+        <div class="c-center"><div class="c-val-block">
+          <div class="ez-kpi-val" style="font-size:38px;">${tpiLabel}</div>
+          <span class="bezel neu">tempo de resposta inicial</span>
+        </div></div>
       </div>
     </div>
     <div class="card line-l1" data-s="none">
       <div class="card-ab">
         <div class="c-header"><div class="c-title pill-l1">TMA Médio</div><div class="c-sub">Tempo médio de atendimento · equipe</div></div>
-        <div class="c-center">
-          <div class="c-val-block">
-            <div class="ez-kpi-val" style="font-size:38px;">${fmtMin(tmaMed)}</div>
-            <span class="bezel neu">duração média por ticket</span>
-          </div>
-        </div>
+        <div class="c-center"><div class="c-val-block">
+          <div class="ez-kpi-val" style="font-size:38px;">${tmaLabel}</div>
+          <span class="bezel neu">duração média por ticket</span>
+        </div></div>
       </div>
     </div>
   </div>
 
-  <!-- L2: Classificação dos Tickets + Picos de Demanda — lado a lado -->
   <div class="row" style="grid-template-columns:1fr 1fr;">
     <div class="card line-l2" data-s="none" style="height:auto;">
       <div class="card-ab" style="height:auto;padding-bottom:16px;">
         <div class="c-header"><div class="c-title pill-l2">Classificação dos Tickets</div><div class="c-sub">Distribuição por tipo de resultado</div></div>
         <div style="margin-top:10px;width:100%;">
-          ${classSort.map(([label,count],i)=>`
+          ${classSort.map(({label,count,pct},i)=>`
             <div class="ez-bar-row" style="margin-bottom:8px;font-size:13px;">
               <div class="ez-bar-label" style="font-size:13px;">${label}</div>
-              <div class="ez-bar-track" style="height:8px;"><div class="ez-bar-fill" style="width:${(count/total*100).toFixed(1)}%;background:${classColors[i]};height:8px;border-radius:4px;"></div></div>
-              <div class="ez-bar-pct" style="font-size:13px;">${(count/total*100).toFixed(0)}%</div>
+              <div class="ez-bar-track" style="height:8px;"><div class="ez-bar-fill" style="width:${(pct*100).toFixed(1)}%;background:${classColors[i%classColors.length]};height:8px;border-radius:4px;"></div></div>
+              <div class="ez-bar-pct" style="font-size:13px;">${Math.round(pct*100)}%</div>
             </div>`).join('')}
         </div>
       </div>
@@ -515,32 +549,24 @@ function renderEZ(){
     </div>
   </div>
 
-  <!-- L4: Performance por Agente — largura total -->
   <div class="row" style="grid-template-columns:1fr;">
     <div class="card line-l3" data-s="none" style="height:auto;">
       <div class="card-ab" style="height:auto;padding-bottom:16px;">
         <div class="c-header"><div class="c-title pill-l3">Performance por Agente</div><div class="c-sub">Consolidado do período filtrado</div></div>
         <div style="margin-top:12px;overflow-x:auto;">
           <table class="ez-table">
-            <thead>
-              <tr>
-                <th>Agente</th>
-                <th>Tickets</th>
-                <th>Finalizados</th>
-                <th>% Finalizado</th>
-                <th>TPI Médio</th>
-                <th>TMA Médio</th>
-                <th>Classificação Mais Frequente</th>
-              </tr>
-            </thead>
+            <thead><tr>
+              <th>Agente</th><th>Tickets</th><th>Finalizados</th><th>% Finalizado</th>
+              <th>TPI Médio</th><th>TMA Médio</th><th>Classificação Mais Frequente</th>
+            </tr></thead>
             <tbody>
               ${perf.map(p=>`<tr>
                 <td class="agent">${p.nome}</td>
                 <td class="num">${p.tickets}</td>
                 <td class="num">${p.fin}</td>
-                <td>${p.tickets?Math.round(p.fin/p.tickets*100)+'%':'—'}</td>
-                <td>${fmtMin(p.tpi)}</td>
-                <td>${fmtMin(p.tma)}</td>
+                <td>${p.tickets?Math.round((p.fin/p.tickets)*100)+'%':'—'}</td>
+                <td>${p.tpiMed||fmtMin(p.tpiMin||0)}</td>
+                <td>${p.tmaMed||fmtMin(p.tmaMin||0)}</td>
                 <td><span class="ez-badge">${p.topClass}</span></td>
               </tr>`).join('')}
             </tbody>
@@ -551,241 +577,96 @@ function renderEZ(){
   </div>`;
 
   document.getElementById('ez-main').innerHTML=html;
-  buildHeatmap(data);
+  if(data.length>0){ buildHeatmapFromTickets(data); } else { buildHeatmapFromSheet(); }
 }
 
-
-/* ══ MAPA DE CALOR — PICOS DE DEMANDA ══ */
-function buildHeatmap(data) {
-  const el = document.getElementById('ez-heatmap');
-  if (!el) return;
-
-  const DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-
-  // Matriz [diaDaSemana 0-6][hora 0-23] = contagem
-  const matrix = Array.from({length: 7}, () => new Array(24).fill(0));
-
-  data.forEach(d => {
-    if (d.Hour < 0 || d.Hour > 23) return;
-    const dt = new Date(d.DataStr + 'T12:00:00');
-    if (isNaN(dt)) return;
-    matrix[dt.getDay()][d.Hour]++;
+/* ══ HEATMAP ══ */
+function buildHeatmapFromTickets(data){
+  const DAYS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const matrix=Array.from({length:7},()=>new Array(24).fill(0));
+  data.forEach(d=>{
+    const hora=d.Hora;
+    if(hora<0||hora>23)return;
+    const dt=new Date(d.DataStr+'T12:00:00');
+    if(isNaN(dt))return;
+    matrix[dt.getDay()][hora]++;
   });
+  renderHeatmapMatrix(DAYS,matrix);
+}
 
-  const maxVal = Math.max(...matrix.flat(), 1);
+function buildHeatmapFromSheet(){
+  const DAYS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const SHEET_DAYS=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  const matrix=Array.from({length:7},()=>new Array(24).fill(0));
+  EZ_HEATMAP_D.forEach(row=>{
+    const hora=row.hora;
+    if(hora<0||hora>23)return;
+    SHEET_DAYS.forEach(day=>{
+      const di=DAYS.indexOf(day);
+      if(di>=0)matrix[di][hora]=row[day]||0;
+    });
+  });
+  renderHeatmapMatrix(DAYS,matrix);
+}
 
-  // Paleta Germânia: transparente → creme → gold → vermelho
-  function getColor(val) {
-    if (val === 0) return 'rgba(200,185,160,0.10)';
-    const t = val / maxVal;
-    if (t <= 0.33) {
-      const p = t / 0.33;
-      // #F1E3CE → #FFA62C
-      return `rgb(${Math.round(241+(255-241)*p)},${Math.round(227+(166-227)*p)},${Math.round(206+(44-206)*p)})`;
-    } else {
-      const p = (t - 0.33) / 0.67;
-      // #FFA62C → #C92B1E
-      return `rgb(${Math.round(255+(201-255)*p)},${Math.round(166+(43-166)*p)},${Math.round(44+(30-44)*p)})`;
-    }
+function renderHeatmapMatrix(DAYS,matrix){
+  const el=document.getElementById('ez-heatmap');
+  if(!el)return;
+  const maxVal=Math.max(...matrix.flat(),1);
+  function getColor(val){
+    if(val===0)return'rgba(200,185,160,0.10)';
+    const t=val/maxVal;
+    if(t<=0.33){const p=t/0.33;return`rgb(${Math.round(241+(255-241)*p)},${Math.round(227+(166-227)*p)},${Math.round(206+(44-206)*p)})`;}
+    else{const p=(t-0.33)/0.67;return`rgb(${Math.round(255+(201-255)*p)},${Math.round(166+(43-166)*p)},${Math.round(44+(30-44)*p)})`;}
   }
-
-  function textColor(val) {
-    return (val / maxVal) > 0.45 ? '#FFF8F0' : '#8B7040';
+  function textColor(val){return(val/maxVal)>0.45?'#FFF8F0':'#8B7040';}
+  const cellW=22,cellH=28,leftPad=32,topPad=22,bottomPad=22;
+  const svgW=leftPad+24*cellW+4,svgH=topPad+7*cellH+bottomPad;
+  let inner='';
+  for(let h=0;h<24;h++){
+    if(h%3===0)inner+=`<text x="${leftPad+h*cellW+cellW/2}" y="${topPad-5}"
+      text-anchor="middle" font-family="Barlow Condensed,sans-serif" font-size="9" fill="#A89870">${String(h).padStart(2,'0')}h</text>`;
   }
-
-  // Dimensões — altura fixa, largura escala proporcionalmente
-  const cellW = 22, cellH = 28;
-  const leftPad = 32, topPad = 22, bottomPad = 22;
-  const svgW = leftPad + 24 * cellW + 4;
-  const svgH = topPad + 7 * cellH + bottomPad;
-
-  let inner = '';
-
-  // Labels de hora no topo (a cada 3h)
-  for (let h = 0; h < 24; h++) {
-    if (h % 3 === 0) {
-      inner += `<text x="${leftPad + h*cellW + cellW/2}" y="${topPad - 4}"
-        text-anchor="middle" font-family="Barlow Condensed,sans-serif"
-        font-size="9" fill="#A89870">${String(h).padStart(2,'0')}h</text>`;
-    }
-  }
-
-  // Células + labels de dia
-  for (let d = 0; d < 7; d++) {
-    const y = topPad + d * cellH;
-    inner += `<text x="${leftPad - 4}" y="${y + cellH/2 + 4}"
-      text-anchor="end" font-family="Barlow Condensed,sans-serif"
-      font-size="9" font-weight="600" fill="#A89870">${DAYS[d]}</text>`;
-
-    for (let h = 0; h < 24; h++) {
-      const x = leftPad + h * cellW;
-      const val = matrix[d][h];
-      const fill = getColor(val);
-      inner += `<rect x="${x+1}" y="${y+1}" width="${cellW-2}" height="${cellH-2}"
-        rx="2" fill="${fill}"
+  for(let d=0;d<7;d++){
+    const y=topPad+d*cellH;
+    inner+=`<text x="${leftPad-4}" y="${y+cellH/2+4}" text-anchor="end"
+      font-family="Barlow Condensed,sans-serif" font-size="9" font-weight="600" fill="#A89870">${DAYS[d]}</text>`;
+    for(let h=0;h<24;h++){
+      const x=leftPad+h*cellW,val=matrix[d][h];
+      inner+=`<rect x="${x+1}" y="${y+1}" width="${cellW-2}" height="${cellH-2}" rx="2" fill="${getColor(val)}"
         data-val="${val}" data-day="${DAYS[d]}" data-hour="${String(h).padStart(2,'0')}h"/>`;
-      if (val > 0) {
-        inner += `<text x="${x + cellW/2}" y="${y + cellH/2 + 4}"
-          text-anchor="middle" font-family="Barlow Condensed,sans-serif"
-          font-size="10" font-weight="600" fill="${textColor(val)}"
-          pointer-events="none">${val}</text>`;
-      }
+      if(val>0)inner+=`<text x="${x+cellW/2}" y="${y+cellH/2+4}" text-anchor="middle"
+        font-family="Barlow Condensed,sans-serif" font-size="10" font-weight="600"
+        fill="${textColor(val)}" pointer-events="none">${val}</text>`;
     }
   }
-
-  // Linha de total por hora na base
-  inner += `<text x="${leftPad - 4}" y="${topPad + 7*cellH + bottomPad - 4}"
-    text-anchor="end" font-family="Barlow Condensed,sans-serif"
-    font-size="9" fill="rgba(168,152,112,0.6)">total</text>`;
-  for (let h = 0; h < 24; h++) {
-    const tot = matrix.reduce((s, row) => s + row[h], 0);
-    if (tot > 0) {
-      inner += `<text x="${leftPad + h*cellW + cellW/2}" y="${topPad + 7*cellH + bottomPad - 5}"
-        text-anchor="middle" font-family="Barlow Condensed,sans-serif"
-        font-size="9" fill="rgba(168,152,112,0.7)">${tot}</text>`;
-    }
+  inner+=`<text x="${leftPad-4}" y="${topPad+7*cellH+bottomPad-5}" text-anchor="end"
+    font-family="Barlow Condensed,sans-serif" font-size="9" fill="rgba(168,152,112,0.6)">total</text>`;
+  for(let h=0;h<24;h++){
+    const tot=matrix.reduce((s,row)=>s+row[h],0);
+    if(tot>0)inner+=`<text x="${leftPad+h*cellW+cellW/2}" y="${topPad+7*cellH+bottomPad-5}" text-anchor="middle"
+      font-family="Barlow Condensed,sans-serif" font-size="9" fill="rgba(168,152,112,0.7)">${tot}</text>`;
   }
-
-  el.innerHTML = `<svg viewBox="0 0 ${svgW} ${svgH}" width="100%" preserveAspectRatio="xMidYMid meet"
+  el.innerHTML=`<svg viewBox="0 0 ${svgW} ${svgH}" width="100%" preserveAspectRatio="xMidYMid meet"
     xmlns="http://www.w3.org/2000/svg" style="display:block;">${inner}</svg>`;
-
-  // Tooltip
-  const oldTip = document.querySelector('.sp-tip[data-id="heatmap"]');
-  if (oldTip) oldTip.remove();
-  const tip = document.createElement('div');
-  tip.className = 'sp-tip';
-  tip.dataset.id = 'heatmap';
+  const oldTip=document.querySelector('.sp-tip[data-id="heatmap"]');
+  if(oldTip)oldTip.remove();
+  const tip=document.createElement('div');
+  tip.className='sp-tip';tip.dataset.id='heatmap';
   document.body.appendChild(tip);
-
-  el.querySelectorAll('rect').forEach(r => {
-    r.style.cursor = 'default';
-    r.addEventListener('mouseenter', e => {
-      const val = r.dataset.val;
-      if (val === '0') return;
-      tip.textContent = `${r.dataset.day} ${r.dataset.hour}: ${val} ticket${val != '1' ? 's' : ''}`;
-      tip.style.left = (e.clientX + 12) + 'px';
-      tip.style.top  = (e.clientY - 32) + 'px';
-      tip.style.opacity = '1';
+  el.querySelectorAll('rect').forEach(r=>{
+    r.style.cursor='default';
+    r.addEventListener('mouseenter',e=>{
+      const val=r.dataset.val;if(val==='0')return;
+      tip.textContent=`${r.dataset.day} ${r.dataset.hour}: ${val} ticket${val!='1'?'s':''}`;
+      tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-32)+'px';tip.style.opacity='1';
     });
-    r.addEventListener('mousemove', e => {
-      tip.style.left = (e.clientX + 12) + 'px';
-      tip.style.top  = (e.clientY - 32) + 'px';
-    });
-    r.addEventListener('mouseleave', () => { tip.style.opacity = '0'; });
+    r.addEventListener('mousemove',e=>{tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-32)+'px';});
+    r.addEventListener('mouseleave',()=>{tip.style.opacity='0';});
   });
 }
 
-function go(){
-  const de=document.getElementById('f-de').value;
-  const ate=document.getElementById('f-ate').value;
-  const resp=document.getElementById('f-resp').value;
-
-  const rdB=RD.filter(d=>{if(de&&d.DataStr<de)return false;if(ate&&d.DataStr>ate)return false;if(resp&&d.Resp!==resp)return false;return true;});
-  const ez=EZ_PROTO.filter(d=>{if(de&&d.DataStr<de)return false;if(ate&&d.DataStr>ate)return false;if(resp&&d.Agente!==resp)return false;return true;});
-
-  const orcs=rdB.filter(d=>ORC_ETAPAS.includes(d.Etapa)&&d['Valor Único']>0);
-  const vend=rdB.filter(d=>d.Estado==='Vendida');
-  const tAt=ez.length,tOrc=orcs.length,tPed=vend.length;
-  const tLit=vend.reduce((s,d)=>s+(d.Litragem_num||0),0);
-  const tRec=vend.reduce((s,d)=>s+(d['Valor Único']||0),0);
-  const tmP=tPed?tRec/tPed:0,tmL=tPed?tLit/tPed:0,rL=tLit?tRec/tLit:0;
-  const d=dias(de,ate),aL=tLit?tLit/d:0,aR=tRec?tRec/d:0;
-
-  const _M=getMetasMes(de,ate);
-  const mrO=mpr(_M.orc,de,ate,resp),mrL=mpr(_M.lit,de,ate,resp);
-  const mrR=mpr(_M.rec,de,ate,resp),mrP=mpr(_M.ped,de,ate,resp);
-  const sO=st(tOrc,mrO),sL=st(tLit,mrL),sR=st(tRec,mrR),sP=st(tPed,mrP);
-
-  // Valores
-  document.getElementById('v-at').textContent=fmt(tAt);
-  document.getElementById('v-orc').textContent=fmt(tOrc);
-  document.getElementById('v-ped').textContent=fmt(tPed);
-  document.getElementById('v-lit').innerHTML=fmt(Math.round(tLit))+'<span class="u"> L</span>';
-  document.getElementById('v-rec').textContent='R$ '+fmt(Math.round(tRec));
-  document.getElementById('v-tp').textContent='R$ '+fmt(Math.round(tmP));
-  document.getElementById('v-tl').innerHTML=tmL.toFixed(1)+'<span class="u"> L</span>';
-  document.getElementById('v-rl').textContent='R$ '+rL.toFixed(2).replace('.',',');
-
-  // Bezels — apenas taxa de conversão no formato "X% de conversão"
-  const convAlc = ALC ? (tAt/ALC*100).toFixed(1)+'% de conversão' : '—';
-  const convAtOrc = tAt ? (tOrc/tAt*100).toFixed(1)+'% de conversão' : '—';
-  const convOrcPed = tOrc ? (tPed/tOrc*100).toFixed(1)+'% de conversão' : '—';
-  const avgLitDia = fmt(Math.round(aL))+' L/dia em média';
-  const avgRecDia = 'R$ '+fmt(Math.round(aR))+'/dia em média';
-
-  document.getElementById('bz-alc').textContent = convAlc;
-  document.getElementById('bz-at').textContent  = convAtOrc;
-  document.getElementById('bz-orc').textContent = convAtOrc;
-  document.getElementById('bz-ped').textContent = convOrcPed;
-  document.getElementById('bz-lit').textContent = avgLitDia;
-  document.getElementById('bz-rec').textContent = avgRecDia;
-  document.getElementById('bz-tp').textContent  = '~R$ '+fmt(Math.round(tmP))+' por evento';
-  document.getElementById('bz-tl').textContent  = '~'+tmL.toFixed(1)+' L por evento';
-  document.getElementById('bz-rl').textContent  = '~R$ '+rL.toFixed(2).replace('.',',')+' por litro vendido';
-
-  // Status
-  setS('c-orc',sO);setS('c-ped',sP);setS('c-lit',sL);setS('c-rec',sR);
-
-  // Tooltips
-  setTip('ct-alc',fmt(tAt)+' atend de '+fmt(ALC)+' alcance');
-  setTip('ct-at', fmt(tOrc)+' orc de '+fmt(tAt)+' atend');
-  setTip('ct-orc','Meta: '+fmt(Math.round(mrO))+' · Real: '+fmt(tOrc));
-  setTip('ct-ped','Meta: '+fmt(Math.round(mrP))+' · Real: '+fmt(tPed));
-  setTip('ct-lit','Meta: '+fmt(Math.round(mrL))+'L · Real: '+fmt(Math.round(tLit))+'L');
-  setTip('ct-rec','Meta: R$ '+fmt(Math.round(mrR))+' · Real: R$ '+fmt(Math.round(tRec)));
-
-  // Círculos
-  circ('ci-alc', ALC?(tAt/ALC*100):0,  '#9BA8B0', pl(tAt,ALC));
-  circ('ci-at',  tAt?(tOrc/tAt*100):0, '#9BA8B0', tAt?Math.round(tOrc/tAt*100)+'%':'—');
-  circ('ci-orc', tOrc?tOrc/mrO*100:0,  SC[sO],    pl(tOrc,mrO));
-  circ('ci-ped', tPed?tPed/mrP*100:0,  SC[sP],    pl(tPed,mrP));
-  circ('ci-lit', tLit?tLit/mrL*100:0,  SC[sL],    pl(tLit,mrL));
-  circ('ci-rec', tRec?tRec/mrR*100:0,  SC[sR],    pl(tRec,mrR));
-
-  // Sparklines
-  // Semanas únicas no período
-  const semsSet=[...new Set(vend.map(d=>d.Semana))].sort((a,b)=>a-b).slice(-4);
-  SEM = semsSet.map((s,i) => {
-    // Calcular data de início da semana
-    const ano = new Date(de).getFullYear();
-    const jan1 = new Date(ano,0,1);
-    const d = new Date(jan1.getTime() + (s-1)*7*86400000);
-    return 'S'+(i+1)+'·'+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
-  });
-  const spP=[],spL=[],spR=[];
-  semsSet.forEach(s=>{
-    const v=vend.filter(d=>d.Semana===s);
-    const p=v.length,l=v.reduce((a,d)=>a+(d.Litragem_num||0),0),r=v.reduce((a,d)=>a+(d['Valor Único']||0),0);
-    spP.push(p?r/p:0);spL.push(p?l/p:0);spR.push(l?r/l:0);
-  });
-  requestAnimationFrame(()=>{
-    spark('sp-tp',spP,SEM,fR);
-    spark('sp-tl',spL,SEM,fL);
-    spark('sp-rl',spR,SEM,v=>'R$'+v.toFixed(2).replace('.',','));
-  });
-
-  // Header
-  hkpi('hk-lit','hv-lit','ht-lit',tLit,mrL,v=>fmt(Math.round(v))+'<span class="u"> L</span>');
-  hkpi('hk-rec','hv-rec','ht-rec',tRec,mrR,v=>'R$'+Math.round(v/1000)+'k');
-  document.getElementById('hv-cv').textContent=tOrc?(tPed/tOrc*100).toFixed(1)+'%':'—';
-  const cvPct=tOrc?(tPed/tOrc*100):0;
-  const cvBar=document.getElementById('hb-cv');
-  if(cvBar){
-    const s=cvPct>=50?'green':cvPct>=30?'yellow':'red';
-    cvBar.className='hk-bar '+s;
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{cvBar.style.width=Math.min(cvPct,100).toFixed(1)+'%';}));
-    const cvPctEl=document.getElementById('hp-cv');
-    if(cvPctEl)cvPctEl.textContent=Math.min(cvPct,100).toFixed(0)+'%';
-  }
-  // h-sub removido
-  const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const deDate=new Date(de+'T12:00:00');
-  const ateDate=new Date(ate+'T12:00:00');
-  const sameMonth=deDate.getMonth()===ateDate.getMonth()&&deDate.getFullYear()===ateDate.getFullYear();
-  const resumoEl=document.getElementById('h-resumo-lbl');
-  if(resumoEl)resumoEl.textContent=sameMonth?'Resumo '+MESES[deDate.getMonth()]:'Resumo do Período';
-}
-
+/* ── CONTROLES ── */
 function reset(){
   const today=new Date();
   const pad=n=>String(n).padStart(2,'0');
@@ -794,21 +675,49 @@ function reset(){
   document.getElementById('f-de').value=y+'-'+pad(m+1)+'-01';
   document.getElementById('f-ate').value=y+'-'+pad(m+1)+'-'+pad(lastDay);
   document.getElementById('f-resp').value='';
-
   document.querySelectorAll('.btn-sh').forEach(b=>b.classList.remove('active'));
   go();
 }
-/* ── DATAS PADRÃO — mês atual ── */
-(function() {
-  const today = new Date();
-  const y = today.getFullYear();
-  const m = String(today.getMonth()+1).padStart(2,'0');
-  const last = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
-  const de  = document.getElementById('f-de');
-  const ate = document.getElementById('f-ate');
-  if (de)  de.value  = y+'-'+m+'-01';
-  if (ate) ate.value = y+'-'+m+'-'+String(last).padStart(2,'0');
+
+function setShortcut(type){
+  const today=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const fmt=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  let de,ate;
+  if(type==='hoje'){de=ate=fmt(today);}
+  else if(type==='7d'){const s=new Date(today);s.setDate(today.getDate()-6);de=fmt(s);ate=fmt(today);}
+  else if(type==='15d'){const s=new Date(today);s.setDate(today.getDate()-14);de=fmt(s);ate=fmt(today);}
+  else if(type==='mes-atual'){de=fmt(new Date(today.getFullYear(),today.getMonth(),1));ate=fmt(new Date(today.getFullYear(),today.getMonth()+1,0));}
+  else if(type==='mes-passado'){de=fmt(new Date(today.getFullYear(),today.getMonth()-1,1));ate=fmt(new Date(today.getFullYear(),today.getMonth(),0));}
+  document.getElementById('f-de').value=de;
+  document.getElementById('f-ate').value=ate;
+  document.querySelectorAll('.btn-sh').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  go();
+}
+
+function setTab(el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const tabName=el.textContent.trim();
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  if(tabName==='Visão Geral')document.getElementById('tab-visao').classList.add('active');
+  else if(tabName==='Atendimento EZ'){document.getElementById('tab-ez').classList.add('active');renderEZ();}
+  else if(tabName==='Metas')document.getElementById('tab-metas').classList.add('active');
+}
+
+/* ── DATAS PADRÃO ── */
+(function(){
+  const today=new Date();
+  const y=today.getFullYear();
+  const m=String(today.getMonth()+1).padStart(2,'0');
+  const last=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
+  const de=document.getElementById('f-de'),ate=document.getElementById('f-ate');
+  if(de)de.value=y+'-'+m+'-01';
+  if(ate)ate.value=y+'-'+m+'-'+String(last).padStart(2,'0');
 })();
 
-const _upd=document.getElementById('upd-date');if(_upd){const _d=new Date();_upd.textContent=String(_d.getDate()).padStart(2,'0')+'/'+String(_d.getMonth()+1).padStart(2,'0')+'/'+_d.getFullYear();}
+const _upd=document.getElementById('upd-date');
+if(_upd){const _d=new Date();_upd.textContent=String(_d.getDate()).padStart(2,'0')+'/'+String(_d.getMonth()+1).padStart(2,'0')+'/'+_d.getFullYear();}
+
 loadData();
