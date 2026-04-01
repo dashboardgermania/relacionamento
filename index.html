@@ -66,14 +66,15 @@
 /* EZ valores */
 :root[data-theme="dark"] .ez-kpi-val { color: var(--txt) !important; }
 /* Tabs — aba ativa: fundo marrom + título amarelo */
-:root[data-theme="dark"] .tabs-wrap { background: var(--bg2); border-color: rgba(255,166,44,0.1); }
-:root[data-theme="dark"] .tab { color: rgba(241,227,206,0.45); }
+/* Tabs — barra vermelha igual ao header, aba ativa fundo marrom sem contorno */
+:root[data-theme="dark"] .tabs-wrap { background: #C92B1E; border-color: #C92B1E; }
+:root[data-theme="dark"] .tab { color: rgba(255,230,200,0.6); border-color: transparent; }
 :root[data-theme="dark"] .tab.active {
   background: var(--bg3);
   color: var(--gold) !important;
-  border-color: var(--gold);
+  border-color: transparent;
 }
-:root[data-theme="dark"] .tab:hover:not(.active) { color: var(--txt); }
+:root[data-theme="dark"] .tab:hover:not(.active) { color: #fff; }
 /* Header KPIs — manter amarelo do claro */
 :root[data-theme="dark"] .hk-v { color: var(--gold) !important; }
 :root[data-theme="dark"] .hk-l { color: rgba(241,227,206,0.5); }
@@ -90,10 +91,15 @@
 :root[data-theme="dark"] .ez-bar-label { color: var(--txt); }
 :root[data-theme="dark"] .ez-bar-track { background: rgba(255,255,255,0.07); }
 :root[data-theme="dark"] .ez-bar-pct { color: rgba(241,227,206,0.55); }
-/* Footer */
-:root[data-theme="dark"] .footer { color: rgba(241,227,206,0.3); border-color: rgba(255,166,44,0.1); }
+/* Footer vermelho */
+:root[data-theme="dark"] .footer-wrap { background: #C92B1E !important; }
+:root[data-theme="dark"] .footer { color: rgba(255,220,180,0.7); border-color: transparent; }
+/* Cards CSAT */
 :root[data-theme="dark"] .csat-ph { color: var(--txt-faint); }
+:root[data-theme="dark"] .csat-ph span { color: rgba(241,227,206,0.3); }
 :root[data-theme="dark"] .csat-ph small { color: rgba(241,227,206,0.35); }
+:root[data-theme="dark"] .card-c .c-title { color: var(--txt); }
+:root[data-theme="dark"] .card-c .c-sub { color: var(--txt-faint); }
 
 /* ─── Círculo fundo dark ─── */
 :root[data-theme="dark"] .circ-bg-fill { fill: #3A2A14 !important; }
