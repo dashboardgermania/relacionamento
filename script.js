@@ -373,8 +373,8 @@ function renderMetas() {
 
   function applyDark(on) {
     root.setAttribute('data-theme', on ? 'dark' : 'light');
-    const btn = document.getElementById('btn-dark');
-    if (btn) btn.textContent = on ? 'modo claro' : 'modo escuro';
+    const lbl = document.getElementById('btn-dark');
+    if (lbl) lbl.textContent = on ? 'Modo claro' : 'Modo escuro';
     try { localStorage.setItem(DARK_KEY, on ? '1' : '0'); } catch(e){}
   }
 
@@ -560,12 +560,13 @@ function go(){
   document.getElementById('v-tl').innerHTML=tmL.toFixed(1)+'<span class="u"> L</span>';
   document.getElementById('v-rl').textContent='R$ '+rL.toFixed(2).replace('.',',');
 
-  const convAlcAt=tAlc?(tAt/tAlc*100).toFixed(1)+'% de conversão':'—';
-  const convAtOrc=tAt?(tOrc/tAt*100).toFixed(1)+'% de conversão':'—';
-  const convOrcPed=tOrc?(tPed/tOrc*100).toFixed(1)+'% de conversão':'—';
-  document.getElementById('bz-alc').textContent=convAlcAt;
-  document.getElementById('bz-at').textContent=convAtOrc;
-  document.getElementById('bz-orc').textContent=convAtOrc;
+  // Bezels L1 — info mais útil que "X% de conversão"
+  const bzAlc = tAlc ? '1 atend a cada ' + Math.round(tAlc / Math.max(tAt,1)) + ' leads' : '—';
+  const bzAt  = tAt  ? Math.round(tOrc / Math.max(tAt,1) * 100) + '% viram orçamento' : '—';
+  const bzOrc = tOrc ? Math.round(tPed / Math.max(tOrc,1) * 100) + '% fecharam pedido' : '—';
+  document.getElementById('bz-alc').textContent=bzAlc;
+  document.getElementById('bz-at').textContent=bzAt;
+  document.getElementById('bz-orc').textContent=bzOrc;
   document.getElementById('bz-ped').textContent=convOrcPed;
   document.getElementById('bz-lit').textContent=fmt(Math.round(aL))+' L/semana em média';
   document.getElementById('bz-rec').textContent='R$ '+fmt(Math.round(aR))+'/semana em média';
@@ -887,9 +888,9 @@ function setTab(el){
   // Mostrar filtro Agente só na aba EZ
   const respGroup=document.getElementById('f-resp-group');
   if(respGroup)respGroup.style.display=tabName==='Atendimento EZ'?'flex':'none';
-  if(tabName==='Visão Geral')document.getElementById('tab-visao').classList.add('active');
-  else if(tabName==='Atendimento EZ'){document.getElementById('tab-ez').classList.add('active');renderEZ();}
-  else if(tabName==='Metas'){document.getElementById('tab-metas').classList.add('active');renderMetas();}
+  if(tabName==='Performance Vendas')document.getElementById('tab-visao').classList.add('active');
+  else if(tabName==='Performance Atendimento'){document.getElementById('tab-ez').classList.add('active');renderEZ();}
+  else if(tabName==='Gestão de Metas'){document.getElementById('tab-metas').classList.add('active');renderMetas();}
 }
 
 /* ── FILTROS PADRÃO — mês atual, todo o mês ── */
