@@ -70,6 +70,18 @@
       <button class="btn-sh" onclick="setShortcut('mes-atual')">Este mês</button>
       <button class="btn-sh" onclick="setShortcut('mes-passado')">Mês passado</button>
     </div>
+    <span class="f-pipe">|</span>
+    <div class="f-group">
+      <span class="f-lbl">Agente</span>
+      <select class="f-sel" id="f-resp" onchange="go()">
+        <option value="">Todos</option>
+        <option>Taciana</option>
+        <option>Lídia</option>
+        <option>Raiza</option>
+        <option>Mirian</option>
+        <option>Marciano</option>
+      </select>
+    </div>
     <button class="btn-f" onclick="go()">FILTRAR</button>
     <button class="btn-c" onclick="reset()">LIMPAR</button>
     <span class="f-upd">Atualizado em: <span id="upd-date"></span></span>
@@ -86,9 +98,9 @@
         <div class="c-center">
           <div class="c-val-block">
             <div class="c-val" id="v-alc">9.632</div>
-            <span class="bezel neu" id="bz-alc">—</span>
+            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel neu" id="bz-alc">—</span><span id="bz-alc-evo" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;color:#9BA8B0;">—</span></div>
           </div>
-          <div class="circ-wrap"><div id="ci-alc"></div><div class="circ-lbl">alc→atend</div><div class="circ-tip" id="ct-alc">—</div></div>
+          <div class="circ-wrap"><div id="ci-alc"></div><div class="circ-lbl">meta</div><div class="circ-tip" id="ct-alc">—</div></div>
         </div>
       </div>
     </div>
@@ -98,9 +110,9 @@
         <div class="c-center">
           <div class="c-val-block">
             <div class="c-val" id="v-at">—</div>
-            <span class="bezel warm" id="bz-at">—</span>
+            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel warm" id="bz-at">—</span><span id="bz-at-evo" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;color:#9BA8B0;">—</span></div>
           </div>
-          <div class="circ-wrap"><div id="ci-at"></div><div class="circ-lbl">atend→orc</div><div class="circ-tip" id="ct-at">—</div></div>
+          <div class="circ-wrap"><div id="ci-at"></div><div class="circ-lbl">meta</div><div class="circ-tip" id="ct-at">—</div></div>
         </div>
       </div>
     </div>
@@ -110,7 +122,7 @@
         <div class="c-center">
           <div class="c-val-block">
             <div class="c-val" id="v-orc">—</div>
-            <span class="bezel warm" id="bz-orc">—</span>
+            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel warm" id="bz-orc">—</span><span id="bz-orc-evo" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;color:#9BA8B0;">—</span></div>
           </div>
           <div class="circ-wrap"><div id="ci-orc"></div><div class="circ-lbl">meta</div><div class="circ-tip" id="ct-orc">—</div></div>
         </div>
@@ -126,7 +138,7 @@
         <div class="c-center">
           <div class="c-val-block">
             <div class="c-val" id="v-ped">—</div>
-            <span class="bezel warm" id="bz-ped">—</span>
+            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel warm" id="bz-ped">—</span><span id="bz-ped-evo" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;color:#9BA8B0;">—</span></div>
           </div>
           <div class="circ-wrap"><div id="ci-ped"></div><div class="circ-lbl">meta</div><div class="circ-tip" id="ct-ped">—</div></div>
         </div>
@@ -138,7 +150,7 @@
         <div class="c-center">
           <div class="c-val-block">
             <div class="c-val" id="v-lit">—</div>
-            <span class="bezel neu" id="bz-lit">—</span>
+            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel neu" id="bz-lit">—</span><span id="bz-lit-evo" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;color:#9BA8B0;">—</span></div>
           </div>
           <div class="circ-wrap"><div id="ci-lit"></div><div class="circ-lbl">meta</div><div class="circ-tip" id="ct-lit">—</div></div>
         </div>
@@ -150,7 +162,7 @@
         <div class="c-center">
           <div class="c-val-block">
             <div class="c-val" id="v-rec" style="font-size:34px;">—</div>
-            <span class="bezel neu" id="bz-rec">—</span>
+            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel neu" id="bz-rec">—</span><span id="bz-rec-evo" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;color:#9BA8B0;">—</span></div>
           </div>
           <div class="circ-wrap"><div id="ci-rec"></div><div class="circ-lbl">meta</div><div class="circ-tip" id="ct-rec">—</div></div>
         </div>
@@ -219,24 +231,7 @@
 </div>
 
 <!-- ABA EZ -->
-<div id="tab-ez" class="tab-content">
-  <div class="filters-wrap" style="border-bottom:1px solid rgba(180,165,140,0.15);">
-    <div class="filters" style="padding-top:10px;padding-bottom:10px;">
-      <div class="f-group">
-        <span class="f-lbl">Agente</span>
-        <select class="f-sel" id="f-resp" onchange="ezRendered=false;renderEZ()">
-          <option value="">Todos</option>
-          <option>Taciana</option>
-          <option>Lídia</option>
-          <option>Raiza</option>
-          <option>Mirian</option>
-          <option>Marciano</option>
-        </select>
-      </div>
-    </div>
-  </div>
-  <div class="main" id="ez-main"></div>
-</div>
+<div id="tab-ez" class="tab-content"><div class="main" id="ez-main"></div></div>
 
 <!-- ABA METAS -->
 <div id="tab-metas" class="tab-content"><div class="main" style="padding:40px;text-align:center;color:var(--txt-faint);font-family:'Barlow Condensed',sans-serif;font-size:16px;letter-spacing:1px;">Em breve</div></div>
