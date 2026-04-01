@@ -283,7 +283,7 @@ function fR(n){return'R$'+Math.round(n).toLocaleString('pt-BR');}
 function fL(n){return Math.round(n)+'L';}
 
 /* ── SPARKLINE ── */
-function spark(id,vals,labs,fmtFn){
+function spark(id,vals,labs,fmtFn,highlightIdx=-1){
   const wrap=document.getElementById(id);if(!wrap)return;
   wrap.innerHTML='';
   const W=wrap.offsetWidth||220,H=wrap.offsetHeight||120;
@@ -307,10 +307,18 @@ function spark(id,vals,labs,fmtFn){
       font-family="Barlow Condensed,sans-serif" font-size="10" font-weight="400"
       fill="#A89870">${l}</text>`;
   }).join('');
-  const dots=vals.map((v,i)=>`<circle class="sd"
-    cx="${xs[i].toFixed(1)}" cy="${ys[i].toFixed(1)}" r="4" fill="${dotColors[i]}"
-    stroke="white" stroke-width="2" style="cursor:pointer;transition:r 0.15s;"
-    data-v="${fmtFn(v)}" data-l="${labs[i]}"/>`).join('');
+  const dots=vals.map((v,i)=>{
+    const isHL=highlightIdx>=0&&i===highlightIdx;
+    const r=isHL?7:4;
+    const stroke=isHL?'#FFA62C':'white';
+    const sw=isHL?2.5:2;
+    const op=highlightIdx>=0&&!isHL?'0.35':'1';
+    return `<circle class="sd"
+      cx="${xs[i].toFixed(1)}" cy="${ys[i].toFixed(1)}" r="${r}" fill="${dotColors[i]}"
+      stroke="${stroke}" stroke-width="${sw}" opacity="${op}"
+      style="cursor:pointer;transition:r 0.15s;"
+      data-v="${fmtFn(v)}" data-l="${labs[i]}"/>`;
+  }).join('');
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   svg.setAttribute('width','100%');svg.setAttribute('height','100%');
@@ -359,6 +367,7 @@ function go(){
   const tmP=tPed?tRec/tPed:0, tmL=tPed?tLit/tPed:0, rL=tLit?tRec/tLit:0;
   const nSem=weeks.length||1;
   const aL=tLit/nSem, aR=tRec/nSem;
+  const sAlc=st(tAlc,mrAlc),sAt=st(tAt,mrAt);
   const sO=st(tOrc,mrO),sL=st(tLit,mrL),sR=st(tRec,mrR),sP=st(tPed,mrP);
 
   document.getElementById('v-alc').textContent=fmt(Math.round(tAlc));
@@ -384,6 +393,30 @@ function go(){
   document.getElementById('bz-tl').textContent='~'+tmL.toFixed(1)+' L por evento';
   document.getElementById('bz-rl').textContent='~R$ '+rL.toFixed(2).replace('.',',')+' por litro vendido';
 
+  // Evolução vs ano anterior
+  function fmtEvo(res, ant) {
+    if (!ant) return '—';
+    const pct = ((res - ant) / ant * 100);
+    const arrow = pct >= 0 ? '↑' : '↓';
+    const color = pct >= 0 ? '#1E7A42' : '#B82418';
+    const el = document.createElement ? null : null; // inline via textContent + style
+    return { txt: arrow+' '+Math.abs(Math.round(pct))+'% vs 2025', color };
+  }
+  function setEvo(id, res, ant) {
+    const el = document.getElementById(id+'-evo');
+    if (!el) return;
+    if (!ant) { el.textContent = '—'; el.style.color = '#9BA8B0'; return; }
+    const pct = (res - ant) / ant * 100;
+    el.textContent = (pct >= 0 ? '↑ ' : '↓ ') + Math.abs(Math.round(pct)) + '% vs 2025';
+    el.style.color = pct >= 0 ? '#1E7A42' : '#B82418';
+  }
+  setEvo('bz-alc', tAlc, alc.anoAnt);
+  setEvo('bz-at',  tAt,  at.anoAnt);
+  setEvo('bz-orc', tOrc, orc.anoAnt);
+  setEvo('bz-ped', tPed, ped.anoAnt);
+  setEvo('bz-lit', tLit, lit.anoAnt);
+  setEvo('bz-rec', tRec, fat.anoAnt);
+
   setS('c-orc',sO);setS('c-ped',sP);setS('c-lit',sL);setS('c-rec',sR);
   setTip('ct-alc',fmt(Math.round(tAt))+' atend de '+fmt(Math.round(tAlc))+' alcance');
   setTip('ct-at',fmt(Math.round(tOrc))+' orc de '+fmt(Math.round(tAt))+' atend');
@@ -392,8 +425,8 @@ function go(){
   setTip('ct-lit','Meta: '+fmt(Math.round(mrL))+'L · Real: '+fmt(Math.round(tLit))+'L');
   setTip('ct-rec','Meta: R$ '+fmt(Math.round(mrR))+' · Real: R$ '+fmt(Math.round(tRec)));
 
-  circ('ci-alc',mrAlc?(tAlc/mrAlc*100):0,'#9BA8B0',pl(Math.round(tAlc),Math.round(mrAlc)));
-  circ('ci-at',tAlc?(tAt/tAlc*100):0,'#9BA8B0',tAlc?Math.round(tAt/tAlc*100)+'%':'—');
+  circ('ci-alc',mrAlc?(tAlc/mrAlc*100):0,SC[sAlc],pl(Math.round(tAlc),Math.round(mrAlc)));
+  circ('ci-at',mrAt?(tAt/mrAt*100):0,SC[sAt],pl(Math.round(tAt),Math.round(mrAt)));
   circ('ci-orc',mrO?(tOrc/mrO*100):0,SC[sO],pl(tOrc,mrO));
   circ('ci-ped',mrP?(tPed/mrP*100):0,SC[sP],pl(tPed,mrP));
   circ('ci-lit',mrL?(tLit/mrL*100):0,SC[sL],pl(Math.round(tLit),Math.round(mrL)));
@@ -408,7 +441,8 @@ function go(){
     const lv=SEMANAL_RAW['Litros vendidos']?.[mes]?.[s]?.res||0;
     spP.push(pv?fv/pv:0); spL.push(pv?lv/pv:0); spR.push(lv?fv/lv:0);
   });
-  requestAnimationFrame(()=>{ spark('sp-tp',spP,SEM,fR); spark('sp-tl',spL,SEM,fL); spark('sp-rl',spR,SEM,v=>'R$'+v.toFixed(2).replace('.',',')); });
+  const hlIdx = sem > 0 ? sem - 1 : -1;
+  requestAnimationFrame(()=>{ spark('sp-tp',spP,SEM,fR,hlIdx); spark('sp-tl',spL,SEM,fL,hlIdx); spark('sp-rl',spR,SEM,v=>'R$'+v.toFixed(2).replace('.',','),hlIdx); });
 
   hkpi('hk-lit','hv-lit','ht-lit',tLit,mrL,v=>fmt(Math.round(v))+'<span class="u"> L</span>');
   hkpi('hk-rec','hv-rec','ht-rec',tRec,mrR,v=>'R$'+Math.round(v/1000)+'k');
