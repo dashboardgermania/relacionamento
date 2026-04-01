@@ -358,7 +358,7 @@ function go(){
   const fat = sumSemanal('Faturamento', weeks);
 
   const tAlc=alc.res,mrAlc=alc.meta;
-  const tAt=at.res;
+  const tAt=at.res,mrAt=at.meta;
   const tOrc=orc.res,mrO=orc.meta;
   const tPed=ped.res,mrP=ped.meta;
   const tLit=lit.res,mrL=lit.meta;
