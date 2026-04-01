@@ -6,24 +6,15 @@ const BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTj3u5RIJkXWM4DJP_
 
 const SHEETS = {
   SEMANAL:    BASE + '0',
-  MENSAL:     BASE + '1903273884',
-  EZ_RESUMO:  BASE + '370114971',
   EZ_TICKETS: BASE + '351627180',
-  EZ_CLASS:   BASE + '992870913',
-  EZ_HEATMAP: BASE + '333353189',
-  EZ_PERF:    BASE + '1491480097',
-  EZ_AGENTES: '',
   METAS:      BASE + '956110426'
+  // EZ_RESUMO, EZ_CLASS, EZ_HEATMAP, EZ_PERF removidas — tudo calculado de EZ_TICKETS
 };
 
 /* ── DADOS EM MEMÓRIA ── */
 let SEMANAL_RAW  = {};
 let EZ_TICKETS   = [];
-let EZ_RESUMO_D  = {};
-let EZ_CLASS_D   = [];
-let EZ_HEATMAP_D = [];
-let EZ_PERF_D    = [];
-let METAS_RAW    = [];  // [{agente, indicador, mes, meta, real}]
+let METAS_RAW    = [];
 
 const SC = {green:'#1E7A42', yellow:'#966A00', red:'#B82418', gray:'#9BA8B0'};
 let SEM = [];
@@ -167,57 +158,7 @@ function processEZTickets(rows) {
   }).filter(r => r.DataStr);
 }
 
-/* ── PARSER EZ RESUMO ── */
-function processEZResumo(rows) {
-  const dataRow = rows.find(r => r['Total de Tickets'] || r['Período']);
-  if (!dataRow) return {};
-  return {
-    total:      parseFloat(dataRow['Total de Tickets']) || 0,
-    finalizados:parseFloat(dataRow['Tickets Finalizados']) || 0,
-    pctFin:     dataRow['% Finalizado'] || '—',
-    tpi:        dataRow['TPI Médio'] || '—',
-    tma:        dataRow['TMA Médio'] || '—',
-    periodo:    dataRow['Período'] || '—'
-  };
-}
 
-/* ── PARSER EZ CLASSIFICAÇÕES ── */
-function processEZClass(rows) {
-  return rows
-    .filter(r => r['Classificação'] && r['Classificação'] !== 'Classificação')
-    .map(r => ({ label: r['Classificação'], tickets: parseFloat(r['Tickets'])||0, pct: parseFloat(r['% do Total'])||0 }))
-    .sort((a,b) => b.tickets - a.tickets).slice(0, 7);
-}
-
-/* ── PARSER EZ MAPA DE CALOR ── */
-function processEZHeatmap(rows) {
-  return rows
-    .filter(r => r['Hora'] && /^\d{2}h$/.test(r['Hora']))
-    .map(r => ({
-      hora: parseInt(r['Hora']),
-      Seg: parseFloat(r['Seg'])||0, Ter: parseFloat(r['Ter'])||0,
-      Qua: parseFloat(r['Qua'])||0, Qui: parseFloat(r['Qui'])||0,
-      Sex: parseFloat(r['Sex'])||0, 'Sáb': parseFloat(r['Sáb'])||0,
-      Dom: parseFloat(r['Dom'])||0
-    }));
-}
-
-/* ── PARSER EZ PERFORMANCE AGENTE ── */
-function processEZPerf(rows) {
-  return rows
-    .filter(r => r['Agente'] && r['Agente'] !== 'Agente' && r['Agente'] !== 'TOTAL')
-    .map(r => ({
-      nome:     r['Agente'],
-      tickets:  parseFloat(r['Tickets'])||0,
-      fin:      parseFloat(r['Finalizados'])||0,
-      pctFin:   parseFloat(r['% Finalizados'])||0,
-      tpiMed:   r['TPI Médio']||'—',
-      tmaMed:   r['TMA Médio']||'—',
-      tpiMin:   parseFloat(r['TPI (min)'])||0,
-      tmaMin:   parseFloat(r['TMA (min)'])||0,
-      topClass: r['Classif. Mais Frequente']||'—'
-    }));
-}
 
 /* ── LOADING ── */
 function setLoading(on) {
@@ -450,21 +391,13 @@ function renderMetas() {
 async function loadData() {
   setLoading(true);
   try {
-    const fetches = [
+    await Promise.all([
       fetch(SHEETS.SEMANAL).then(r=>r.text()).then(t=>{ SEMANAL_RAW = parseSemanal(t); }),
       fetch(SHEETS.EZ_TICKETS).then(r=>r.text()).then(t=>{ EZ_TICKETS = processEZTickets(parseCSV(t)); }),
-      fetch(SHEETS.EZ_RESUMO).then(r=>r.text()).then(t=>{ EZ_RESUMO_D = processEZResumo(parseCSV(t)); }),
-      fetch(SHEETS.EZ_CLASS).then(r=>r.text()).then(t=>{ EZ_CLASS_D = processEZClass(parseCSV(t)); }),
-      fetch(SHEETS.EZ_HEATMAP).then(r=>r.text()).then(t=>{ EZ_HEATMAP_D = processEZHeatmap(parseCSV(t)); }),
-      fetch(SHEETS.EZ_PERF).then(r=>r.text()).then(t=>{ EZ_PERF_D = processEZPerf(parseCSV(t)); }),
-    ];
-    if (SHEETS.METAS) fetches.push(
-      fetch(SHEETS.METAS).then(r=>r.text()).then(t=>{ METAS_RAW = processMetasSheet(parseCSV(t)); })
-    );
-    await Promise.all(fetches);
+      fetch(SHEETS.METAS).then(r=>r.text()).then(t=>{ METAS_RAW = processMetasSheet(parseCSV(t)); }),
+    ]);
   } catch(e) { console.warn('Erro ao carregar dados:', e); }
-  console.log('SEMANAL_RAW:', Object.keys(SEMANAL_RAW));
-  console.log('EZ_TICKETS:', EZ_TICKETS.length, 'tickets');
+  console.log('[EZ_TICKETS]', EZ_TICKETS.length, 'tickets | meses:', [...new Set(EZ_TICKETS.map(d=>d.DataStr.slice(0,7)))]);
   setLoading(false);
   go();
 }
@@ -739,31 +672,24 @@ function renderEZ(){
   const ativo=data.filter(d=>d.Ativo==='ATIVO').length;
   const recep=data.filter(d=>d.Ativo==='RECEPTIVO').length;
 
-  let classSort;
-  if(total>0){
-    const classCount={};
-    data.forEach(d=>{ const c=d.Classificacao||'Sem Classificação'; classCount[c]=(classCount[c]||0)+1; });
-    classSort=Object.entries(classCount).sort((a,b)=>b[1]-a[1]).slice(0,7)
-      .map(([label,count])=>({label,count,pct:count/total}));
-  } else {
-    classSort=EZ_CLASS_D.map(c=>({label:c.label,count:c.tickets,pct:c.pct}));
-  }
+  // Classificações — 100% de EZ_TICKETS
+  const classCount={};
+  data.forEach(d=>{ const c=d.Classificacao||'Sem Classificação'; classCount[c]=(classCount[c]||0)+1; });
+  const classSort=Object.entries(classCount).sort((a,b)=>b[1]-a[1]).slice(0,7)
+    .map(([label,count])=>({label,count,pct:total?count/total:0}));
 
-  let perf;
-  if(!resp&&EZ_PERF_D.length){
-    perf=EZ_PERF_D;
-  } else {
-    const agentes=[...new Set(data.map(d=>d.Agente))].filter(Boolean);
-    perf=agentes.map(a=>{
-      const ag=data.filter(d=>d.Agente===a);
-      const fin=ag.filter(d=>d.Status==='Finalizado').length;
-      const tpi=ag.reduce((s,d)=>s+(d.TPI_min||0),0)/Math.max(ag.length,1);
-      const tma=ag.reduce((s,d)=>s+(d.TMA_min||0),0)/Math.max(ag.length,1);
-      const cc={};ag.forEach(d=>{const c=d.Classificacao||'Sem class.';cc[c]=(cc[c]||0)+1;});
-      const topClass=Object.entries(cc).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
-      return{nome:a,tickets:ag.length,fin,pctFin:ag.length?fin/ag.length:0,tpiMin:tpi,tmaMin:tma,topClass};
-    });
-  }
+  // Performance por agente — 100% de EZ_TICKETS
+  const agentesUniq=[...new Set(EZ_TICKETS.map(d=>d.Agente))].filter(Boolean).sort();
+  const perf=agentesUniq.map(a=>{
+    const ag=data.filter(d=>d.Agente===a);
+    if(!ag.length)return null;
+    const fin=ag.filter(d=>d.Status==='Finalizado').length;
+    const tpi=ag.reduce((s,d)=>s+(d.TPI_min||0),0)/Math.max(ag.length,1);
+    const tma=ag.reduce((s,d)=>s+(d.TMA_min||0),0)/Math.max(ag.length,1);
+    const cc={};ag.forEach(d=>{const c=d.Classificacao||'Sem class.';cc[c]=(cc[c]||0)+1;});
+    const topClass=Object.entries(cc).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
+    return{nome:a,tickets:ag.length,fin,tpiMin:tpi,tmaMin:tma,topClass};
+  }).filter(Boolean);
 
   function fmtMin(min){
     min=Math.round(min);
@@ -772,10 +698,10 @@ function renderEZ(){
   }
 
   const classColors=['#3D6490','#2E6644','#6B4E10','#8B3A8B','#C8941A','#9BA8B0','#B85C38'];
-  const totalLabel=total>0?total.toLocaleString('pt-BR'):String(EZ_RESUMO_D.total||'—');
-  const bezLabel=total>0?ativo+' ativos · '+recep+' receptivos':(EZ_RESUMO_D.periodo||'—');
-  const tpiLabel=total>0?fmtMin(tpiMed):(EZ_RESUMO_D.tpi||'—');
-  const tmaLabel=total>0?fmtMin(tmaMed):(EZ_RESUMO_D.tma||'—');
+  const totalLabel=total.toLocaleString('pt-BR');
+  const bezLabel=ativo+' ativos · '+recep+' receptivos';
+  const tpiLabel=fmtMin(tpiMed);
+  const tmaLabel=fmtMin(tmaMed);
 
   const html=`
   <div class="row">
@@ -858,7 +784,7 @@ function renderEZ(){
   </div>`;
 
   document.getElementById('ez-main').innerHTML=html;
-  if(data.length>0){ buildHeatmapFromTickets(data); } else { buildHeatmapFromSheet(); }
+  buildHeatmapFromTickets(data);
 }
 
 /* ══ HEATMAP ══ */
@@ -871,21 +797,6 @@ function buildHeatmapFromTickets(data){
     const dt=new Date(d.DataStr+'T12:00:00');
     if(isNaN(dt))return;
     matrix[dt.getDay()][hora]++;
-  });
-  renderHeatmapMatrix(DAYS,matrix);
-}
-
-function buildHeatmapFromSheet(){
-  const DAYS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-  const SHEET_DAYS=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
-  const matrix=Array.from({length:7},()=>new Array(24).fill(0));
-  EZ_HEATMAP_D.forEach(row=>{
-    const hora=row.hora;
-    if(hora<0||hora>23)return;
-    SHEET_DAYS.forEach(day=>{
-      const di=DAYS.indexOf(day);
-      if(di>=0)matrix[di][hora]=row[day]||0;
-    });
   });
   renderHeatmapMatrix(DAYS,matrix);
 }
