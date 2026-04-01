@@ -21,6 +21,7 @@
   --gold:      #FFA62C;
   --gold-lt:   #FFB84D;
   --red-pill:  #C92B1E;
+  --circ-bg:   #3A2A14;
 }
 :root[data-theme="dark"] body { background: var(--bg); color: var(--txt); }
 :root[data-theme="dark"] .page-wrap { background: var(--bg); }
@@ -28,6 +29,7 @@
   background: var(--card-bg) !important;
   border-color: var(--card-bd) !important;
 }
+/* Filtros */
 :root[data-theme="dark"] .filters-wrap {
   background: var(--bg2);
   border-color: rgba(255,166,44,0.12);
@@ -35,8 +37,7 @@
 :root[data-theme="dark"] .filters { background: var(--bg2); }
 :root[data-theme="dark"] .f-lbl { color: rgba(241,227,206,0.5); }
 :root[data-theme="dark"] .f-sel, :root[data-theme="dark"] .f-input {
-  background: var(--bg3);
-  color: var(--txt);
+  background: var(--bg3); color: var(--txt);
   border-color: rgba(255,166,44,0.2);
 }
 :root[data-theme="dark"] .f-sep { color: rgba(241,227,206,0.4); }
@@ -48,13 +49,13 @@
 }
 :root[data-theme="dark"] .btn-sh:hover,
 :root[data-theme="dark"] .btn-sh.active {
-  background: rgba(255,166,44,0.12);
-  color: var(--gold);
+  background: rgba(255,166,44,0.12); color: var(--gold);
 }
 :root[data-theme="dark"] .btn-c {
   color: rgba(241,227,206,0.5);
   border-color: rgba(241,227,206,0.15);
 }
+/* Cards texto */
 :root[data-theme="dark"] .c-val { color: var(--txt); }
 :root[data-theme="dark"] .c-sub { color: var(--txt-faint); }
 :root[data-theme="dark"] .c-title { color: var(--txt); }
@@ -62,10 +63,26 @@
 :root[data-theme="dark"] .circ-tip { color: rgba(241,227,206,0.5); }
 :root[data-theme="dark"] .bezel { color: rgba(241,227,206,0.5) !important; }
 :root[data-theme="dark"] .bezel.neu { color: rgba(241,227,206,0.45) !important; }
+/* EZ valores */
+:root[data-theme="dark"] .ez-kpi-val { color: var(--txt) !important; }
+/* Tabs — aba ativa: fundo marrom + título amarelo */
 :root[data-theme="dark"] .tabs-wrap { background: var(--bg2); border-color: rgba(255,166,44,0.1); }
-:root[data-theme="dark"] .tab { color: rgba(241,227,206,0.5); }
-:root[data-theme="dark"] .tab.active { color: var(--gold); border-color: var(--gold); }
-:root[data-theme="dark"] .tab:hover { color: var(--txt); }
+:root[data-theme="dark"] .tab { color: rgba(241,227,206,0.45); }
+:root[data-theme="dark"] .tab.active {
+  background: var(--bg3);
+  color: var(--gold) !important;
+  border-color: var(--gold);
+}
+:root[data-theme="dark"] .tab:hover:not(.active) { color: var(--txt); }
+/* Header KPIs — manter amarelo do claro */
+:root[data-theme="dark"] .hk-v { color: var(--gold) !important; }
+:root[data-theme="dark"] .hk-l { color: rgba(241,227,206,0.5); }
+:root[data-theme="dark"] .hk-bar-footer { color: rgba(241,227,206,0.4); }
+:root[data-theme="dark"] .h-resumo-lbl { color: rgba(241,227,206,0.5); }
+/* Círculos — fundo marrom dentro do card */
+:root[data-theme="dark"] .circ-wrap circle[fill="white"] { fill: var(--circ-bg) !important; }
+:root[data-theme="dark"] .circ-wrap svg circle:nth-child(2) { fill: var(--circ-bg); }
+/* EZ table */
 :root[data-theme="dark"] .ez-table th { color: rgba(241,227,206,0.45); border-color: rgba(255,166,44,0.1); }
 :root[data-theme="dark"] .ez-table td { color: var(--txt); border-color: rgba(255,166,44,0.08); }
 :root[data-theme="dark"] .ez-table tr:hover td { background: rgba(255,166,44,0.05); }
@@ -73,25 +90,33 @@
 :root[data-theme="dark"] .ez-bar-label { color: var(--txt); }
 :root[data-theme="dark"] .ez-bar-track { background: rgba(255,255,255,0.07); }
 :root[data-theme="dark"] .ez-bar-pct { color: rgba(241,227,206,0.55); }
-:root[data-theme="dark"] .hk-bar-footer { color: rgba(241,227,206,0.4); }
-:root[data-theme="dark"] .hk-v { color: var(--txt); }
-:root[data-theme="dark"] .hk-l { color: rgba(241,227,206,0.5); }
+/* Footer */
 :root[data-theme="dark"] .footer { color: rgba(241,227,206,0.3); border-color: rgba(255,166,44,0.1); }
 :root[data-theme="dark"] .csat-ph { color: var(--txt-faint); }
 :root[data-theme="dark"] .csat-ph small { color: rgba(241,227,206,0.35); }
 
-/* botão dark */
+/* ─── Círculo fundo dark ─── */
+:root[data-theme="dark"] .circ-bg-fill { fill: #3A2A14 !important; }
+
+/* ─── Botão dark mode ─── */
+.filters-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
 .btn-dark {
   background: none;
   border: 1px solid rgba(180,165,140,0.25);
   border-radius: 4px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
-  transition: border-color 0.2s;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: inherit;
+  white-space: nowrap;
+  transition: border-color 0.2s, color 0.2s;
 }
-.btn-dark:hover { border-color: rgba(180,165,140,0.5); }
+.btn-dark:hover { border-color: rgba(180,165,140,0.55); }
+:root[data-theme="dark"] .btn-dark { border-color: rgba(255,166,44,0.3); color: var(--gold-lt); }
+:root[data-theme="dark"] .btn-dark:hover { border-color: var(--gold); }
 </style>
 </head>
 <body>
@@ -158,8 +183,10 @@
     </div>
     <button class="btn-f" onclick="go()">FILTRAR</button>
     <button class="btn-c" onclick="reset()">LIMPAR</button>
-    <button class="btn-dark" id="btn-dark" onclick="toggleDark()" title="Alternar tema">🌙</button>
-    <span class="f-upd">Atualizado em: <span id="upd-date"></span></span>
+    <div class="filters-right">
+      <button class="btn-dark" id="btn-dark" onclick="toggleDark()">modo escuro</button>
+      <span class="f-upd">Atualizado em: <span id="upd-date"></span></span>
+    </div>
   </div>
 </div>
 
@@ -308,7 +335,12 @@
 <!-- ABA EZ -->
 <div id="tab-ez" class="tab-content">
   <div class="filters-wrap" style="border-bottom:1px solid rgba(180,165,140,0.15);">
-    <div class="filters" style="padding-top:10px;padding-bottom:10px;">
+    <div class="filters" style="padding-top:8px;padding-bottom:8px;">
+      <div class="f-group">
+        <span class="f-lbl">Mês</span>
+        <span class="f-lbl" style="font-weight:600;color:var(--txt-faint,#8B7040);" id="ez-mes-lbl">—</span>
+      </div>
+      <span class="f-pipe">|</span>
       <div class="f-group">
         <span class="f-lbl">Agente</span>
         <select class="f-sel" id="f-resp" onchange="ezRendered=false;renderEZ()">
