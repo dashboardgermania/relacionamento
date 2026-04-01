@@ -13,7 +13,7 @@ const SHEETS = {
   EZ_HEATMAP: BASE + '333353189',
   EZ_PERF:    BASE + '1491480097',
   EZ_AGENTES: '',
-  METAS:      BASE + '956110426'  // ← Troque COLE_O_GID_AQUI pelo número que aparece na URL ao clicar na aba Metas no Sheets
+  METAS:      BASE + '956110426'
 };
 
 /* ── DADOS EM MEMÓRIA ── */
