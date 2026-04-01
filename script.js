@@ -631,8 +631,8 @@ function go(){
   document.getElementById('hv-cv').textContent=tOrc?cvPct.toFixed(1)+'%':'—';
   const cvBar=document.getElementById('hb-cv');
   if(cvBar){
-    const s=cvPct>=50?'green':cvPct>=30?'yellow':'red';
-    cvBar.className='hk-bar '+s;
+    const cvSt=cvPct>=50?'green':cvPct>=30?'yellow':'red';
+    cvBar.className='hk-bar '+cvSt;
     requestAnimationFrame(()=>requestAnimationFrame(()=>{cvBar.style.width=Math.min(cvPct,100).toFixed(1)+'%';}));
     const cvPctEl=document.getElementById('hp-cv');
     if(cvPctEl)cvPctEl.textContent=Math.min(cvPct,100).toFixed(0)+'%';
