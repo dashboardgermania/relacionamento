@@ -7,6 +7,92 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 
+
+<style>
+/* ═══ DARK MODE ═══ */
+:root[data-theme="dark"] {
+  --bg:        #1A1208;
+  --bg2:       #221A0E;
+  --bg3:       #2C2214;
+  --card-bg:   #261E12;
+  --card-bd:   rgba(255,200,120,0.10);
+  --txt:       #F1E3CE;
+  --txt-faint: rgba(241,227,206,0.45);
+  --gold:      #FFA62C;
+  --gold-lt:   #FFB84D;
+  --red-pill:  #C92B1E;
+}
+:root[data-theme="dark"] body { background: var(--bg); color: var(--txt); }
+:root[data-theme="dark"] .page-wrap { background: var(--bg); }
+:root[data-theme="dark"] .card {
+  background: var(--card-bg) !important;
+  border-color: var(--card-bd) !important;
+}
+:root[data-theme="dark"] .filters-wrap {
+  background: var(--bg2);
+  border-color: rgba(255,166,44,0.12);
+}
+:root[data-theme="dark"] .filters { background: var(--bg2); }
+:root[data-theme="dark"] .f-lbl { color: rgba(241,227,206,0.5); }
+:root[data-theme="dark"] .f-sel, :root[data-theme="dark"] .f-input {
+  background: var(--bg3);
+  color: var(--txt);
+  border-color: rgba(255,166,44,0.2);
+}
+:root[data-theme="dark"] .f-sep { color: rgba(241,227,206,0.4); }
+:root[data-theme="dark"] .f-pipe { color: rgba(241,227,206,0.2); }
+:root[data-theme="dark"] .f-upd { color: rgba(241,227,206,0.35); }
+:root[data-theme="dark"] .btn-sh {
+  color: rgba(241,227,206,0.55);
+  border-color: rgba(255,166,44,0.15);
+}
+:root[data-theme="dark"] .btn-sh:hover,
+:root[data-theme="dark"] .btn-sh.active {
+  background: rgba(255,166,44,0.12);
+  color: var(--gold);
+}
+:root[data-theme="dark"] .btn-c {
+  color: rgba(241,227,206,0.5);
+  border-color: rgba(241,227,206,0.15);
+}
+:root[data-theme="dark"] .c-val { color: var(--txt); }
+:root[data-theme="dark"] .c-sub { color: var(--txt-faint); }
+:root[data-theme="dark"] .c-title { color: var(--txt); }
+:root[data-theme="dark"] .circ-lbl { color: rgba(241,227,206,0.45); }
+:root[data-theme="dark"] .circ-tip { color: rgba(241,227,206,0.5); }
+:root[data-theme="dark"] .bezel { color: rgba(241,227,206,0.5) !important; }
+:root[data-theme="dark"] .bezel.neu { color: rgba(241,227,206,0.45) !important; }
+:root[data-theme="dark"] .tabs-wrap { background: var(--bg2); border-color: rgba(255,166,44,0.1); }
+:root[data-theme="dark"] .tab { color: rgba(241,227,206,0.5); }
+:root[data-theme="dark"] .tab.active { color: var(--gold); border-color: var(--gold); }
+:root[data-theme="dark"] .tab:hover { color: var(--txt); }
+:root[data-theme="dark"] .ez-table th { color: rgba(241,227,206,0.45); border-color: rgba(255,166,44,0.1); }
+:root[data-theme="dark"] .ez-table td { color: var(--txt); border-color: rgba(255,166,44,0.08); }
+:root[data-theme="dark"] .ez-table tr:hover td { background: rgba(255,166,44,0.05); }
+:root[data-theme="dark"] .ez-badge { background: rgba(255,166,44,0.1); color: var(--gold-lt); }
+:root[data-theme="dark"] .ez-bar-label { color: var(--txt); }
+:root[data-theme="dark"] .ez-bar-track { background: rgba(255,255,255,0.07); }
+:root[data-theme="dark"] .ez-bar-pct { color: rgba(241,227,206,0.55); }
+:root[data-theme="dark"] .hk-bar-footer { color: rgba(241,227,206,0.4); }
+:root[data-theme="dark"] .hk-v { color: var(--txt); }
+:root[data-theme="dark"] .hk-l { color: rgba(241,227,206,0.5); }
+:root[data-theme="dark"] .footer { color: rgba(241,227,206,0.3); border-color: rgba(255,166,44,0.1); }
+:root[data-theme="dark"] .csat-ph { color: var(--txt-faint); }
+:root[data-theme="dark"] .csat-ph small { color: rgba(241,227,206,0.35); }
+
+/* botão dark */
+.btn-dark {
+  background: none;
+  border: 1px solid rgba(180,165,140,0.25);
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: border-color 0.2s;
+}
+.btn-dark:hover { border-color: rgba(180,165,140,0.5); }
+</style>
 </head>
 <body>
 
@@ -70,20 +156,9 @@
       <button class="btn-sh" onclick="setShortcut('mes-atual')">Este mês</button>
       <button class="btn-sh" onclick="setShortcut('mes-passado')">Mês passado</button>
     </div>
-    <span class="f-pipe">|</span>
-    <div class="f-group">
-      <span class="f-lbl">Agente</span>
-      <select class="f-sel" id="f-resp" onchange="go()">
-        <option value="">Todos</option>
-        <option>Taciana</option>
-        <option>Lídia</option>
-        <option>Raiza</option>
-        <option>Mirian</option>
-        <option>Marciano</option>
-      </select>
-    </div>
     <button class="btn-f" onclick="go()">FILTRAR</button>
     <button class="btn-c" onclick="reset()">LIMPAR</button>
+    <button class="btn-dark" id="btn-dark" onclick="toggleDark()" title="Alternar tema">🌙</button>
     <span class="f-upd">Atualizado em: <span id="upd-date"></span></span>
   </div>
 </div>
@@ -231,7 +306,24 @@
 </div>
 
 <!-- ABA EZ -->
-<div id="tab-ez" class="tab-content"><div class="main" id="ez-main"></div></div>
+<div id="tab-ez" class="tab-content">
+  <div class="filters-wrap" style="border-bottom:1px solid rgba(180,165,140,0.15);">
+    <div class="filters" style="padding-top:10px;padding-bottom:10px;">
+      <div class="f-group">
+        <span class="f-lbl">Agente</span>
+        <select class="f-sel" id="f-resp" onchange="ezRendered=false;renderEZ()">
+          <option value="">Todos</option>
+          <option>Taciana</option>
+          <option>Lídia</option>
+          <option>Raiza</option>
+          <option>Mirian</option>
+          <option>Marciano</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="main" id="ez-main"></div>
+</div>
 
 <!-- ABA METAS -->
 <div id="tab-metas" class="tab-content"><div class="main" id="metas-main"></div></div>
