@@ -51,10 +51,9 @@ function parseNum(s) {
   if (s === null || s === undefined) return 0;
   s = String(s).trim().replace(/^R\$\s*/, '').replace(/%\s*$/, '').replace(/\s/g,'');
   if (!s) return 0;
-  const parts = s.split('.');
-  if (parts.length > 1 && parts.slice(1).every(p => p.length === 3)) {
-    s = parts.join('');
-  }
+  // Remover pontos de milhar (ponto seguido de exatamente 3 dígitos)
+  s = s.replace(/\.(?=\d{3}(\D|$))/g, '');
+  // Vírgula decimal → ponto
   s = s.replace(',', '.');
   return parseFloat(s) || 0;
 }
@@ -63,26 +62,13 @@ function parseNum(s) {
 function parseSemanal(text) {
   const lines = text.trim().split(/\r?\n/);
 
-  // Detectar linha sep= e pular
-  let i = 0;
-  if (lines[i] && lines[i].startsWith('sep=')) i++;
+  // Detectar sep= e calcular skip exato
+  let skip = 0;
+  if (lines[0] && lines[0].startsWith('sep=')) skip = 1;
+  // Após sep (ou início): linha vazia, título, cabeçalho-meses, cabeçalho-semanas = +4
+  skip += 4;
 
-  // Avançar até encontrar a linha "Indicador" nos primeiros 8 itens
-  // Estrutura: título, vazio, cabeçalho-meses, cabeçalho-semanas → 4 linhas após sep
-  // Mas pode variar — buscar dinamicamente a linha de dados
-  let dataStart = i;
-  while (dataStart < lines.length && dataStart < i + 8) {
-    const first = lines[dataStart].split(',')[0].replace(/^"|"$/g,'').trim();
-    if (first && first !== '' && first !== 'Indicador' &&
-        !first.startsWith('Quadro') && !first.startsWith('Semana') &&
-        !/^(Janeiro|Fevereiro|Março|Abril|Maio|Junho|Julho|Agosto|Setembro|Outubro|Novembro|Dezembro)$/.test(first)) {
-      // Chegamos nos dados reais
-      break;
-    }
-    dataStart++;
-  }
-
-  const dataLines = lines.slice(dataStart).filter(l => l.trim());
+  const dataLines = lines.slice(skip).filter(l => l.trim());
   const result = {};
   let currentInd = '';
   const TIPO_MAP = { 'Meta':'meta', 'Resultado':'res', 'Ano anterior':'anoAnt' };
@@ -96,23 +82,35 @@ function parseSemanal(text) {
       else { cur += c; }
     }
     vals.push(cur.trim().replace(/^"|"$/g,''));
-    if (vals[0]) currentInd = vals[0].trim();
+
+    const col0 = vals[0] ? vals[0].trim() : '';
+    const col1 = vals[1] ? vals[1].trim() : '';
+
+    if (col0) currentInd = col0;
     if (!currentInd) return;
-    const tipo = TIPO_MAP[vals[1]?.trim()];
+
+    const tipo = TIPO_MAP[col1];
     if (!tipo) return;
+
     if (!result[currentInd]) result[currentInd] = {};
     for (let mes = 1; mes <= 12; mes++) {
       if (!result[currentInd][mes]) result[currentInd][mes] = {};
       for (let sem = 1; sem <= 4; sem++) {
         const col = 2 + (mes-1)*4 + (sem-1);
         if (!result[currentInd][mes][sem]) result[currentInd][mes][sem] = {meta:0, res:0, anoAnt:0};
-        const v = parseNum(vals[col]);
-        result[currentInd][mes][sem][tipo] = v;
+        if (col < vals.length) {
+          const v = parseNum(vals[col] || '');
+          result[currentInd][mes][sem][tipo] = v;
+        }
       }
     }
   });
 
-  console.log('parseSemanal: indicadores encontrados:', Object.keys(result));
+  console.log('[Semanal] indicadores:', Object.keys(result));
+  if (Object.keys(result).length > 0) {
+    const s = Object.keys(result)[0];
+    console.log('[Semanal] ex:', s, '| mes3 S1:', result[s]?.[3]?.[1]);
+  }
   return result;
 }
 
