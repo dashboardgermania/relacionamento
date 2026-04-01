@@ -12,7 +12,8 @@ const SHEETS = {
   EZ_CLASS:   BASE + '992870913',
   EZ_HEATMAP: BASE + '333353189',
   EZ_PERF:    BASE + '1491480097',
-  EZ_AGENTES: ''
+  EZ_AGENTES: '',
+  METAS:      ''  // ← Cole aqui o link CSV da aba Metas quando estiver pronta
 };
 
 /* ── DADOS EM MEMÓRIA ── */
@@ -22,6 +23,7 @@ let EZ_RESUMO_D  = {};
 let EZ_CLASS_D   = [];
 let EZ_HEATMAP_D = [];
 let EZ_PERF_D    = [];
+let METAS_RAW    = [];  // [{agente, indicador, mes, meta, real}]
 
 const SC = {green:'#1E7A42', yellow:'#966A00', red:'#B82418', gray:'#9BA8B0'};
 let SEM = [];
@@ -224,17 +226,218 @@ function setLoading(on) {
 }
 
 /* ── CARREGAMENTO PRINCIPAL ── */
+
+/* ── PARSER ABA METAS ── */
+function processMetasSheet(rows) {
+  // Estrutura esperada: Agente | Indicador | Jan Meta | Jan Real | Fev Meta | Fev Real | ...
+  const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                 'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const result = [];
+  rows.forEach(r => {
+    const agente    = (r['Agente']    || r[Object.keys(r)[0]] || '').trim();
+    const indicador = (r['Indicador'] || r[Object.keys(r)[1]] || '').trim();
+    if (!agente || !indicador || agente === 'Agente') return;
+    MESES.forEach((m, i) => {
+      const mes  = i + 1;
+      const meta = parseNum(r[m + ' Meta'] || r['Meta ' + m] || '0');
+      const real = parseNum(r[m + ' Real'] || r['Real ' + m] || '0');
+      result.push({ agente, indicador, mes, meta, real });
+    });
+  });
+  return result;
+}
+
+/* ── HELPER: filtrar METAS_RAW ── */
+function getMetasData(mes) {
+  return METAS_RAW.filter(d => d.mes === mes);
+}
+
+
+/* ══ RENDER ABA METAS ══ */
+let metasRendered = false;
+function renderMetas() {
+  // Sempre re-renderiza ao trocar mês
+  const el = document.getElementById('metas-main');
+  if (!el) return;
+
+  const mes = parseInt(document.getElementById('f-mes')?.value) || (new Date().getMonth()+1);
+  const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                 'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const nomeMes = MESES[mes-1];
+
+  // Se não há dados ainda → skeleton de espera
+  if (!METAS_RAW.length) {
+    el.innerHTML = `
+    <div style="padding:48px 32px;text-align:center;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;
+        color:var(--gold);letter-spacing:1px;margin-bottom:12px;">METAS</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;color:var(--txt-faint);
+        letter-spacing:1px;margin-bottom:32px;">Conecte a planilha de metas para visualizar os dados</div>
+      <div style="display:inline-block;padding:12px 24px;border:1px solid rgba(180,165,140,0.3);
+        border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:13px;
+        color:var(--txt-faint);letter-spacing:1px;">
+        Cole o link CSV em <strong style="color:var(--gold);">SHEETS.METAS</strong> no script.js
+      </div>
+    </div>`;
+    return;
+  }
+
+  const dados = getMetasData(mes);
+  const indicadores = [...new Set(dados.map(d => d.indicador))];
+  const agentes     = [...new Set(dados.filter(d => d.agente !== 'Time').map(d => d.agente))];
+  const timeRow     = (ind) => dados.find(d => d.agente === 'Time' && d.indicador === ind) || {meta:0,real:0};
+
+  const SC = {green:'#1E7A42', yellow:'#966A00', red:'#B82418', gray:'#9BA8B0'};
+  function cor(real, meta) {
+    if (!meta) return SC.gray;
+    const p = real/meta*100;
+    return p >= 100 ? SC.green : p >= 70 ? SC.yellow : SC.red;
+  }
+  function badge(real, meta) {
+    if (!meta) return '—';
+    return Math.round(real/meta*100) + '%';
+  }
+  function fmtV(ind, v) {
+    if (ind === 'Faturamento' || ind === 'Receita') return 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+    if (ind === 'Litros' || ind === 'Litros vendidos') return Math.round(v).toLocaleString('pt-BR') + ' L';
+    if (ind === 'Conversão') return v.toFixed(1) + '%';
+    return Math.round(v).toLocaleString('pt-BR');
+  }
+
+  // ── Seção 1: Time ──
+  let teamHTML = indicadores.map(ind => {
+    const t   = timeRow(ind);
+    const pct = t.meta ? Math.min(t.real/t.meta*100, 100) : 0;
+    const c   = cor(t.real, t.meta);
+    const bg  = c === SC.green ? 'rgba(30,122,66,0.12)' : c === SC.yellow ? 'rgba(150,106,0,0.12)' : 'rgba(184,36,24,0.10)';
+    return `
+    <div class="card line-l2" data-s="none" style="height:auto;">
+      <div class="card-ab" style="height:auto;padding-bottom:16px;">
+        <div class="c-header">
+          <div class="c-title pill-l2">${ind}</div>
+          <div class="c-sub">${nomeMes} · Time</div>
+        </div>
+        <div style="margin-top:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;color:var(--txt);">${fmtV(ind, t.real)}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:${c};">${badge(t.real,t.meta)}</div>
+          </div>
+          <div style="height:6px;background:rgba(180,165,140,0.15);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${pct.toFixed(1)}%;background:${c};border-radius:3px;transition:width 0.8s ease;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:5px;">
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--txt-faint);">meta: ${fmtV(ind, t.meta)}</span>
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--txt-faint);">${t.real >= t.meta ? '✓ atingida' : 'falta ' + fmtV(ind, Math.max(0, t.meta - t.real))}</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ── Seção 2: Agentes ──
+  let agentesHTML = agentes.map(ag => {
+    const rows = dados.filter(d => d.agente === ag);
+    const cards = rows.map(r => {
+      const pct = r.meta ? Math.min(r.real/r.meta*100,100) : 0;
+      const c   = cor(r.real, r.meta);
+      return `
+        <div style="margin-bottom:14px;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;
+            letter-spacing:0.8px;color:var(--txt-faint);text-transform:uppercase;margin-bottom:4px;">${r.indicador}</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="flex:1;height:8px;background:rgba(180,165,140,0.15);border-radius:4px;overflow:hidden;">
+              <div style="height:100%;width:${pct.toFixed(1)}%;background:${c};border-radius:4px;transition:width 0.8s ease;"></div>
+            </div>
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
+              color:${c};min-width:38px;text-align:right;">${badge(r.real,r.meta)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:3px;">
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--txt-faint);">${fmtV(r.indicador,r.real)} de ${fmtV(r.indicador,r.meta)}</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Calcular % médio do agente para ranking
+    const medPct = rows.reduce((s,r) => s + (r.meta ? r.real/r.meta*100 : 0), 0) / Math.max(rows.length, 1);
+    const cAg    = cor(medPct, 100);
+
+    return `
+    <div class="card line-l3" data-s="none" style="height:auto;">
+      <div class="card-ab" style="height:auto;padding-bottom:16px;">
+        <div class="c-header">
+          <div class="c-title pill-l3">${ag}</div>
+          <div class="c-sub" style="color:${cAg};font-weight:600;">${Math.round(medPct)}% da meta</div>
+        </div>
+        <div style="margin-top:14px;">${cards}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ── Seção 3: Ranking ──
+  const ranking = agentes.map(ag => {
+    const rows  = dados.filter(d => d.agente === ag);
+    const med   = rows.reduce((s,r) => s + (r.meta ? r.real/r.meta*100 : 0), 0) / Math.max(rows.length,1);
+    return { ag, med };
+  }).sort((a,b) => b.med - a.med);
+
+  const medals = ['🥇','🥈','🥉'];
+  const rankHTML = ranking.map((r,i) => {
+    const c   = cor(r.med, 100);
+    const bar = Math.min(r.med, 100).toFixed(1);
+    return `
+    <div style="display:flex;align-items:center;gap:14px;padding:10px 0;
+      border-bottom:1px solid rgba(180,165,140,0.12);">
+      <div style="font-size:20px;width:28px;text-align:center;">${medals[i]||''}</div>
+      <div style="flex:1;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;
+          color:var(--txt);">${r.ag}</div>
+        <div style="height:5px;background:rgba(180,165,140,0.15);border-radius:3px;margin-top:4px;overflow:hidden;">
+          <div style="height:100%;width:${bar}%;background:${c};border-radius:3px;"></div>
+        </div>
+      </div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;
+        color:${c};min-width:48px;text-align:right;">${Math.round(r.med)}%</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+  <!-- METAS TEAM -->
+  <div class="row" style="grid-template-columns:repeat(${Math.min(indicadores.length,3)},1fr);">
+    ${teamHTML}
+  </div>
+
+  <!-- METAS INDIVIDUAIS + RANKING -->
+  <div class="row" style="grid-template-columns:${agentes.length > 0 ? '2fr 1fr' : '1fr'};">
+    <div style="display:grid;grid-template-columns:repeat(${Math.min(agentes.length,3)},1fr);gap:16px;">
+      ${agentesHTML}
+    </div>
+    <div class="card line-l3" data-s="none" style="height:auto;">
+      <div class="card-ab" style="height:auto;padding-bottom:16px;">
+        <div class="c-header">
+          <div class="c-title pill-l3">Ranking ${nomeMes}</div>
+          <div class="c-sub">% médio de atingimento</div>
+        </div>
+        <div style="margin-top:12px;">${rankHTML}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
 async function loadData() {
   setLoading(true);
   try {
-    await Promise.all([
+    const fetches = [
       fetch(SHEETS.SEMANAL).then(r=>r.text()).then(t=>{ SEMANAL_RAW = parseSemanal(t); }),
       fetch(SHEETS.EZ_TICKETS).then(r=>r.text()).then(t=>{ EZ_TICKETS = processEZTickets(parseCSV(t)); }),
       fetch(SHEETS.EZ_RESUMO).then(r=>r.text()).then(t=>{ EZ_RESUMO_D = processEZResumo(parseCSV(t)); }),
       fetch(SHEETS.EZ_CLASS).then(r=>r.text()).then(t=>{ EZ_CLASS_D = processEZClass(parseCSV(t)); }),
       fetch(SHEETS.EZ_HEATMAP).then(r=>r.text()).then(t=>{ EZ_HEATMAP_D = processEZHeatmap(parseCSV(t)); }),
       fetch(SHEETS.EZ_PERF).then(r=>r.text()).then(t=>{ EZ_PERF_D = processEZPerf(parseCSV(t)); }),
-    ]);
+    ];
+    if (SHEETS.METAS) fetches.push(
+      fetch(SHEETS.METAS).then(r=>r.text()).then(t=>{ METAS_RAW = processMetasSheet(parseCSV(t)); })
+    );
+    await Promise.all(fetches);
   } catch(e) { console.warn('Erro ao carregar dados:', e); }
   console.log('SEMANAL_RAW:', Object.keys(SEMANAL_RAW));
   console.log('EZ_TICKETS:', EZ_TICKETS.length, 'tickets');
@@ -746,7 +949,7 @@ function setTab(el){
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   if(tabName==='Visão Geral')document.getElementById('tab-visao').classList.add('active');
   else if(tabName==='Atendimento EZ'){document.getElementById('tab-ez').classList.add('active');renderEZ();}
-  else if(tabName==='Metas')document.getElementById('tab-metas').classList.add('active');
+  else if(tabName==='Metas'){document.getElementById('tab-metas').classList.add('active');renderMetas();}
 }
 
 /* ── FILTROS PADRÃO — mês atual, todo o mês ── */
