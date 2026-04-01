@@ -424,6 +424,29 @@ function renderMetas() {
   </div>`;
 }
 
+
+/* ══ DARK MODE ══ */
+(function(){
+  const DARK_KEY = 'germania-dark';
+  const root = document.documentElement;
+
+  function applyDark(on) {
+    root.setAttribute('data-theme', on ? 'dark' : 'light');
+    const btn = document.getElementById('btn-dark');
+    if (btn) btn.textContent = on ? '☀️' : '🌙';
+    try { localStorage.setItem(DARK_KEY, on ? '1' : '0'); } catch(e){}
+  }
+
+  window.toggleDark = function() {
+    const isDark = root.getAttribute('data-theme') === 'dark';
+    applyDark(!isDark);
+  };
+
+  // Inicializar
+  const saved = (() => { try { return localStorage.getItem(DARK_KEY); } catch(e){ return null; } })();
+  applyDark(saved === '1');
+})();
+
 async function loadData() {
   setLoading(true);
   try {
@@ -684,9 +707,10 @@ function go(){
   const resumoEl=document.getElementById('h-resumo-lbl');
   if(resumoEl)resumoEl.textContent=sem?MESES[mes-1]+' · S'+sem:'Resumo '+MESES[mes-1];
 
-  // Atualiza EZ se a aba estiver ativa
+  // Atualiza abas ativas ao filtrar
   ezRendered=false;
   if(document.getElementById('tab-ez')?.classList.contains('active'))renderEZ();
+  if(document.getElementById('tab-metas')?.classList.contains('active'))renderMetas();
 }
 
 /* ── ABA EZ ── */
