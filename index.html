@@ -106,25 +106,43 @@
 /* ─── Círculo fundo dark ─── */
 :root[data-theme="dark"] .circ-bg-fill { fill: #3A2A14 !important; }
 
-/* ─── Botão dark mode ─── */
-.filters-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-.btn-dark {
-  background: none;
-  border: 1px solid rgba(180,165,140,0.25);
-  border-radius: 4px;
-  padding: 4px 10px;
-  cursor: pointer;
+/* ─── Bezel evolução ─── */
+.bezel-evo {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px; font-weight: 600;
   letter-spacing: 0.5px;
-  color: inherit;
-  white-space: nowrap;
-  transition: border-color 0.2s, color 0.2s;
+  color: #9BA8B0;
 }
-.btn-dark:hover { border-color: rgba(180,165,140,0.55); }
-:root[data-theme="dark"] .btn-dark { border-color: rgba(255,166,44,0.3); color: var(--gold-lt); }
-:root[data-theme="dark"] .btn-dark:hover { border-color: var(--gold); }
+
+/* ─── Botão dark mode — toggle switch ─── */
+.filters-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.dark-toggle {
+  display: flex; align-items: center; gap: 7px;
+  cursor: pointer; user-select: none;
+}
+.dark-toggle-lbl {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
+  color: #8B7040; white-space: nowrap;
+  transition: color 0.2s;
+}
+.dark-toggle-track {
+  position: relative; width: 36px; height: 20px;
+  background: rgba(180,165,140,0.25);
+  border-radius: 10px;
+  transition: background 0.25s;
+  flex-shrink: 0;
+}
+.dark-toggle-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 14px; height: 14px;
+  background: #8B7040; border-radius: 50%;
+  transition: transform 0.25s, background 0.25s;
+}
+/* Estado ativo (dark on) */
+:root[data-theme="dark"] .dark-toggle-track { background: #FFA62C; }
+:root[data-theme="dark"] .dark-toggle-thumb { background: #1A1208; transform: translateX(16px); }
+:root[data-theme="dark"] .dark-toggle-lbl { color: var(--gold-lt); }
 </style>
 </head>
 <body>
@@ -151,9 +169,9 @@
 </header>
 <div class="tabs-wrap">
   <div class="tabs">
-    <div class="tab active" onclick="setTab(this)">Visão Geral</div>
-    <div class="tab" onclick="setTab(this)">Atendimento EZ</div>
-    <div class="tab" onclick="setTab(this)">Metas</div>
+    <div class="tab active" onclick="setTab(this)">Performance Vendas</div>
+    <div class="tab" onclick="setTab(this)">Performance Atendimento</div>
+    <div class="tab" onclick="setTab(this)">Gestão de Metas</div>
   </div>
 </div>
 <div class="filters-wrap">
@@ -204,7 +222,12 @@
     <button class="btn-f" onclick="go()">FILTRAR</button>
     <button class="btn-c" onclick="reset()">LIMPAR</button>
     <div class="filters-right">
-      <button class="btn-dark" id="btn-dark" onclick="toggleDark()">modo escuro</button>
+      <label class="dark-toggle" onclick="toggleDark()" title="Alternar tema">
+        <span class="dark-toggle-lbl" id="btn-dark">Modo escuro</span>
+        <span class="dark-toggle-track" id="dark-track">
+          <span class="dark-toggle-thumb"></span>
+        </span>
+      </label>
       <span class="f-upd">Atualizado em: <span id="upd-date"></span></span>
     </div>
   </div>
@@ -220,7 +243,7 @@
         <div class="c-center">
           <div class="c-val-block">
             <div class="c-val" id="v-alc">—</div>
-            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel neu" id="bz-alc">—</span><span id="bz-alc-evo" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;color:#9BA8B0;">—</span></div>
+            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel neu" id="bz-alc">—</span><span id="bz-alc-evo" class="bezel-evo">—</span></div>
           </div>
           <div class="circ-wrap"><div id="ci-alc"></div><div class="circ-lbl">meta</div><div class="circ-tip" id="ct-alc">—</div></div>
         </div>
@@ -232,7 +255,7 @@
         <div class="c-center">
           <div class="c-val-block">
             <div class="c-val" id="v-at">—</div>
-            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel warm" id="bz-at">—</span><span id="bz-at-evo" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;color:#9BA8B0;">—</span></div>
+            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel warm" id="bz-at">—</span><span id="bz-at-evo" class="bezel-evo">—</span></div>
           </div>
           <div class="circ-wrap"><div id="ci-at"></div><div class="circ-lbl">meta</div><div class="circ-tip" id="ct-at">—</div></div>
         </div>
@@ -244,7 +267,7 @@
         <div class="c-center">
           <div class="c-val-block">
             <div class="c-val" id="v-orc">—</div>
-            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel warm" id="bz-orc">—</span><span id="bz-orc-evo" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;color:#9BA8B0;">—</span></div>
+            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel warm" id="bz-orc">—</span><span id="bz-orc-evo" class="bezel-evo">—</span></div>
           </div>
           <div class="circ-wrap"><div id="ci-orc"></div><div class="circ-lbl">meta</div><div class="circ-tip" id="ct-orc">—</div></div>
         </div>
@@ -260,7 +283,7 @@
         <div class="c-center">
           <div class="c-val-block">
             <div class="c-val" id="v-ped">—</div>
-            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel warm" id="bz-ped">—</span><span id="bz-ped-evo" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;color:#9BA8B0;">—</span></div>
+            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel warm" id="bz-ped">—</span><span id="bz-ped-evo" class="bezel-evo">—</span></div>
           </div>
           <div class="circ-wrap"><div id="ci-ped"></div><div class="circ-lbl">meta</div><div class="circ-tip" id="ct-ped">—</div></div>
         </div>
@@ -272,7 +295,7 @@
         <div class="c-center">
           <div class="c-val-block">
             <div class="c-val" id="v-lit">—</div>
-            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel neu" id="bz-lit">—</span><span id="bz-lit-evo" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;color:#9BA8B0;">—</span></div>
+            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel neu" id="bz-lit">—</span><span id="bz-lit-evo" class="bezel-evo">—</span></div>
           </div>
           <div class="circ-wrap"><div id="ci-lit"></div><div class="circ-lbl">meta</div><div class="circ-tip" id="ct-lit">—</div></div>
         </div>
@@ -284,7 +307,7 @@
         <div class="c-center">
           <div class="c-val-block">
             <div class="c-val" id="v-rec" style="font-size:34px;">—</div>
-            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel neu" id="bz-rec">—</span><span id="bz-rec-evo" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;color:#9BA8B0;">—</span></div>
+            <div class="bezel-stack" style="display:flex;flex-direction:column;gap:2px;"><span class="bezel neu" id="bz-rec">—</span><span id="bz-rec-evo" class="bezel-evo">—</span></div>
           </div>
           <div class="circ-wrap"><div id="ci-rec"></div><div class="circ-lbl">meta</div><div class="circ-tip" id="ct-rec">—</div></div>
         </div>
