@@ -13,7 +13,7 @@ const SHEETS = {
   EZ_HEATMAP: BASE + '333353189',
   EZ_PERF:    BASE + '1491480097',
   EZ_AGENTES: '',
-  METAS:      ''  // ← Cole aqui o link CSV da aba Metas quando estiver pronta
+  METAS:      BASE + '956110426'  // ← Troque COLE_O_GID_AQUI pelo número que aparece na URL ao clicar na aba Metas no Sheets
 };
 
 /* ── DADOS EM MEMÓRIA ── */
@@ -228,22 +228,23 @@ function setLoading(on) {
 /* ── CARREGAMENTO PRINCIPAL ── */
 
 /* ── PARSER ABA METAS ── */
+// Estrutura: Agente | Indicador | Janeiro Meta | Janeiro Real | Fevereiro Meta | Fevereiro Real | ...
 function processMetasSheet(rows) {
-  // Estrutura esperada: Agente | Indicador | Jan Meta | Jan Real | Fev Meta | Fev Real | ...
   const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const result = [];
   rows.forEach(r => {
-    const agente    = (r['Agente']    || r[Object.keys(r)[0]] || '').trim();
-    const indicador = (r['Indicador'] || r[Object.keys(r)[1]] || '').trim();
+    const agente    = (r['Agente']    || '').trim();
+    const indicador = (r['Indicador'] || '').trim();
     if (!agente || !indicador || agente === 'Agente') return;
     MESES.forEach((m, i) => {
       const mes  = i + 1;
-      const meta = parseNum(r[m + ' Meta'] || r['Meta ' + m] || '0');
-      const real = parseNum(r[m + ' Real'] || r['Real ' + m] || '0');
+      const meta = parseNum(r[m + ' Meta'] || '0');
+      const real = parseNum(r[m + ' Real'] || '0');
       result.push({ agente, indicador, mes, meta, real });
     });
   });
+  console.log('[Metas] registros:', result.length, '| agentes:', [...new Set(result.map(d=>d.agente))]);
   return result;
 }
 
