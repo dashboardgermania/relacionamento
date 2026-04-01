@@ -62,7 +62,27 @@ function parseNum(s) {
 /* ── PARSER SEMANAL ── */
 function parseSemanal(text) {
   const lines = text.trim().split(/\r?\n/);
-  const dataLines = lines.slice(4).filter(l => l.trim());
+
+  // Detectar linha sep= e pular
+  let i = 0;
+  if (lines[i] && lines[i].startsWith('sep=')) i++;
+
+  // Avançar até encontrar a linha "Indicador" nos primeiros 8 itens
+  // Estrutura: título, vazio, cabeçalho-meses, cabeçalho-semanas → 4 linhas após sep
+  // Mas pode variar — buscar dinamicamente a linha de dados
+  let dataStart = i;
+  while (dataStart < lines.length && dataStart < i + 8) {
+    const first = lines[dataStart].split(',')[0].replace(/^"|"$/g,'').trim();
+    if (first && first !== '' && first !== 'Indicador' &&
+        !first.startsWith('Quadro') && !first.startsWith('Semana') &&
+        !/^(Janeiro|Fevereiro|Março|Abril|Maio|Junho|Julho|Agosto|Setembro|Outubro|Novembro|Dezembro)$/.test(first)) {
+      // Chegamos nos dados reais
+      break;
+    }
+    dataStart++;
+  }
+
+  const dataLines = lines.slice(dataStart).filter(l => l.trim());
   const result = {};
   let currentInd = '';
   const TIPO_MAP = { 'Meta':'meta', 'Resultado':'res', 'Ano anterior':'anoAnt' };
@@ -91,6 +111,8 @@ function parseSemanal(text) {
       }
     }
   });
+
+  console.log('parseSemanal: indicadores encontrados:', Object.keys(result));
   return result;
 }
 
