@@ -652,9 +652,7 @@ function renderEZ(){
   if(ezRendered)return;
   ezRendered=true;
   const mes  = parseInt(document.getElementById('f-mes')?.value) || (new Date().getMonth()+1);
-  const MESES_N=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const lbl = document.getElementById('ez-mes-lbl');
-  if (lbl) lbl.textContent = MESES_N[mes-1] || '';
+
   const sem  = parseInt(document.getElementById('f-sem')?.value) || 0;
   const resp = document.getElementById('f-resp')?.value || '';
   const {de, ate} = getDateRangeForFilter(mes, sem);
@@ -886,6 +884,9 @@ function setTab(el){
   el.classList.add('active');
   const tabName=el.textContent.trim();
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  // Mostrar filtro Agente só na aba EZ
+  const respGroup=document.getElementById('f-resp-group');
+  if(respGroup)respGroup.style.display=tabName==='Atendimento EZ'?'flex':'none';
   if(tabName==='Visão Geral')document.getElementById('tab-visao').classList.add('active');
   else if(tabName==='Atendimento EZ'){document.getElementById('tab-ez').classList.add('active');renderEZ();}
   else if(tabName==='Metas'){document.getElementById('tab-metas').classList.add('active');renderMetas();}
