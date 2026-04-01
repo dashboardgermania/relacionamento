@@ -70,7 +70,7 @@
 :root[data-theme="dark"] .tabs-wrap { background: #C92B1E; border-color: #C92B1E; }
 :root[data-theme="dark"] .tab { color: rgba(255,230,200,0.6); border-color: transparent; }
 :root[data-theme="dark"] .tab.active {
-  background: var(--bg3);
+  background: var(--bg2);
   color: var(--gold) !important;
   border-color: transparent;
 }
@@ -131,7 +131,7 @@
 
 <div class="page-wrap"><header class="header">
   <div class="header-inner">
-    <div class="h-logo"><img src="logo-germania.png" alt="Germânia"></div>
+    <div class="h-logo" style="display:flex;align-items:center;"><img src="logo-germania.png" alt="Germânia" style="height:72px;width:auto;"></div>
     <div class="h-div"></div>
     <div class="h-brand">
       <div class="eyebrow">Germânia · Cervejaria · Dashboard Comercial</div>
@@ -188,6 +188,18 @@
     <div class="f-group f-shortcuts">
       <button class="btn-sh" onclick="setShortcut('mes-atual')">Este mês</button>
       <button class="btn-sh" onclick="setShortcut('mes-passado')">Mês passado</button>
+    </div>
+    <div class="f-group" id="f-resp-group" style="display:none;">
+      <span class="f-pipe" style="margin-right:8px;">|</span>
+      <span class="f-lbl">Agente</span>
+      <select class="f-sel" id="f-resp" onchange="ezRendered=false;renderEZ()">
+        <option value="">Todos</option>
+        <option>Taciana</option>
+        <option>Lídia</option>
+        <option>Raiza</option>
+        <option>Mirian</option>
+        <option>Marciano</option>
+      </select>
     </div>
     <button class="btn-f" onclick="go()">FILTRAR</button>
     <button class="btn-c" onclick="reset()">LIMPAR</button>
@@ -341,29 +353,7 @@
 </div>
 
 <!-- ABA EZ -->
-<div id="tab-ez" class="tab-content">
-  <div class="filters-wrap" style="border-bottom:1px solid rgba(180,165,140,0.15);">
-    <div class="filters" style="padding-top:8px;padding-bottom:8px;">
-      <div class="f-group">
-        <span class="f-lbl">Mês</span>
-        <span class="f-lbl" style="font-weight:600;color:var(--txt-faint,#8B7040);" id="ez-mes-lbl">—</span>
-      </div>
-      <span class="f-pipe">|</span>
-      <div class="f-group">
-        <span class="f-lbl">Agente</span>
-        <select class="f-sel" id="f-resp" onchange="ezRendered=false;renderEZ()">
-          <option value="">Todos</option>
-          <option>Taciana</option>
-          <option>Lídia</option>
-          <option>Raiza</option>
-          <option>Mirian</option>
-          <option>Marciano</option>
-        </select>
-      </div>
-    </div>
-  </div>
-  <div class="main" id="ez-main"></div>
-</div>
+<div id="tab-ez" class="tab-content"><div class="main" id="ez-main"></div></div>
 
 <!-- ABA METAS -->
 <div id="tab-metas" class="tab-content"><div class="main" id="metas-main"></div></div>
