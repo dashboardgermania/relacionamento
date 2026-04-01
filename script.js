@@ -433,7 +433,7 @@ function renderMetas() {
   function applyDark(on) {
     root.setAttribute('data-theme', on ? 'dark' : 'light');
     const btn = document.getElementById('btn-dark');
-    if (btn) btn.textContent = on ? '☀️' : '🌙';
+    if (btn) btn.textContent = on ? 'modo claro' : 'modo escuro';
     try { localStorage.setItem(DARK_KEY, on ? '1' : '0'); } catch(e){}
   }
 
@@ -487,7 +487,7 @@ function circ(elId,pct,color,txt){
       </filter>
     </defs>
     <circle cx="${CCX}" cy="${CCY}" r="${CR+7}" fill="rgba(0,0,0,0.07)"/>
-    <circle cx="${CCX}" cy="${CCY}" r="${CR+5}" fill="white" filter="url(#${uid}sh)"/>
+    <circle cx="${CCX}" cy="${CCY}" r="${CR+5}" class="circ-bg-fill" fill="white" filter="url(#${uid}sh)"/>
     <circle cx="${CCX}" cy="${CCY}" r="${CR}" fill="none" stroke="rgba(180,165,140,0.20)" stroke-width="8"/>
     <circle cx="${CCX}" cy="${CCY}" r="${CR}" fill="none"
       stroke="url(#${uid})" stroke-width="8" stroke-linecap="round"
@@ -719,6 +719,9 @@ function renderEZ(){
   if(ezRendered)return;
   ezRendered=true;
   const mes  = parseInt(document.getElementById('f-mes')?.value) || (new Date().getMonth()+1);
+  const MESES_N=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const lbl = document.getElementById('ez-mes-lbl');
+  if (lbl) lbl.textContent = MESES_N[mes-1] || '';
   const sem  = parseInt(document.getElementById('f-sem')?.value) || 0;
   const resp = document.getElementById('f-resp')?.value || '';
   const {de, ate} = getDateRangeForFilter(mes, sem);
