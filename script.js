@@ -564,10 +564,11 @@ function go(){
   const bzAlc = tAlc ? '1 atend a cada ' + Math.round(tAlc / Math.max(tAt,1)) + ' leads' : '—';
   const bzAt  = tAt  ? Math.round(tOrc / Math.max(tAt,1) * 100) + '% viram orçamento' : '—';
   const bzOrc = tOrc ? Math.round(tPed / Math.max(tOrc,1) * 100) + '% fecharam pedido' : '—';
+  const bzPed = tOrc ? Math.round(tPed/Math.max(tOrc,1)*100)+'% dos orç. viraram pedido' : '—';
   document.getElementById('bz-alc').textContent=bzAlc;
   document.getElementById('bz-at').textContent=bzAt;
   document.getElementById('bz-orc').textContent=bzOrc;
-  document.getElementById('bz-ped').textContent=convOrcPed;
+  document.getElementById('bz-ped').textContent=bzPed;
   document.getElementById('bz-lit').textContent=fmt(Math.round(aL))+' L/semana em média';
   document.getElementById('bz-rec').textContent='R$ '+fmt(Math.round(aR))+'/semana em média';
   document.getElementById('bz-tp').textContent='~R$ '+fmt(Math.round(tmP))+' por evento';
