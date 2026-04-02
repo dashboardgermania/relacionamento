@@ -2,13 +2,13 @@
    CONFIGURAÇÃO — URLs do Google Sheets
    Publicar cada aba: Arquivo → Publicar na web → CSV
 ══════════════════════════════════════════ */
-const BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTj3u5RIJkXWM4DJP_vYx5VjJMC_PpHdk6C62daBJJE0hk1NJhB86UdahFIDB7AEUxZiJ5OEiVu5c_u/pub?single=true&output=csv&gid=';
+const BASE_EZ   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTj3u5RIJkXWM4DJP_vYx5VjJMC_PpHdk6C62daBJJE0hk1NJhB86UdahFIDB7AEUxZiJ5OEiVu5c_u/pub?single=true&output=csv&gid=';
+const BASE_PERF = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT-tsnKujVragUXmIRfSossYDc4jhVWsbOj3iSJ9b_ak2gyaL1wcK5kEDLzI_w9rslpdb55odtM3qoX/pub?single=true&output=csv&gid=';
 
 const SHEETS = {
-  SEMANAL:    BASE + '0',
-  EZ_TICKETS: BASE + '351627180',
-  METAS:      BASE + '956110426'
-  // EZ_RESUMO, EZ_CLASS, EZ_HEATMAP, EZ_PERF removidas — tudo calculado de EZ_TICKETS
+  SEMANAL:    BASE_PERF + '0',       // nova planilha de performance
+  EZ_TICKETS: BASE_EZ   + '351627180',
+  METAS:      BASE_EZ   + '956110426'
 };
 
 /* ── DADOS EM MEMÓRIA ── */
@@ -906,3 +906,8 @@ const _upd=document.getElementById('upd-date');
 if(_upd){const _d=new Date();_upd.textContent=String(_d.getDate()).padStart(2,'0')+'/'+String(_d.getMonth()+1).padStart(2,'0')+'/'+_d.getFullYear();}
 
 loadData();
+
+/* ── AUTO-REFRESH a cada 10 minutos ── */
+setInterval(async () => {
+  await loadData();
+}, 10 * 60 * 1000);
