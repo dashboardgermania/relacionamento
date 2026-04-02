@@ -883,6 +883,10 @@ function setShortcut(type){
 }
 
 function setTab(el){
+  // Fixar tabs-wrap durante a troca para evitar gap do sticky
+  const tw = document.querySelector('.tabs-wrap');
+  if(tw){ tw.style.position='relative'; tw.style.top='auto'; }
+
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   const tabName=el.textContent.trim();
@@ -892,8 +896,12 @@ function setTab(el){
   if(tabName==='Performance Vendas')document.getElementById('tab-visao').classList.add('active');
   else if(tabName==='Performance Atendimento'){document.getElementById('tab-ez').classList.add('active');renderEZ();}
   else if(tabName==='Gestão de Metas'){document.getElementById('tab-metas').classList.add('active');renderMetas();}
-  // Scroll após reflow do browser para garantir posição correta com tabs sticky
-  requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo(0,0)));
+
+  // Após reflow: scroll ao topo e restaurar sticky
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    window.scrollTo(0,0);
+    if(tw){ tw.style.position=''; tw.style.top=''; }
+  }));
 }
 
 /* ── FILTROS PADRÃO — mês atual, todo o mês ── */
