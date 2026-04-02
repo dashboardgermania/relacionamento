@@ -371,11 +371,28 @@ function renderMetas() {
   const DARK_KEY = 'germania-dark';
   const root = document.documentElement;
 
+  function fixGap() {
+    const pw = document.querySelector('.page-wrap');
+    const tw = document.querySelector('.tabs-wrap');
+    if (!pw || !tw) return;
+    pw.style.backgroundImage = '';
+    if (root.getAttribute('data-theme') !== 'dark') return;
+    requestAnimationFrame(() => {
+      const twTop = tw.getBoundingClientRect().top + window.scrollY;
+      if (twTop > 5) {
+        pw.style.backgroundImage =
+          `linear-gradient(to bottom, #C92B1E ${Math.ceil(twTop)}px, #1A1208 ${Math.ceil(twTop)}px)`;
+      }
+    });
+  }
+  window._fixGap = fixGap;
+
   function applyDark(on) {
     root.setAttribute('data-theme', on ? 'dark' : 'light');
     const lbl = document.getElementById('btn-dark');
     if (lbl) lbl.textContent = on ? 'Modo claro' : 'Modo escuro';
     try { localStorage.setItem(DARK_KEY, on ? '1' : '0'); } catch(e){}
+    setTimeout(fixGap, 50);
   }
 
   window.toggleDark = function() {
@@ -386,6 +403,8 @@ function renderMetas() {
   // Inicializar
   const saved = (() => { try { return localStorage.getItem(DARK_KEY); } catch(e){ return null; } })();
   applyDark(saved === '1');
+  // Fix gap após render inicial
+  window.addEventListener('load', () => { if (window._fixGap) window._fixGap(); });
 })();
 
 async function loadData() {
@@ -400,6 +419,7 @@ async function loadData() {
   console.log('[EZ_TICKETS]', EZ_TICKETS.length, 'tickets | meses:', [...new Set(EZ_TICKETS.map(d=>d.DataStr.slice(0,7)))]);
   setLoading(false);
   go();
+  if (window._fixGap) setTimeout(window._fixGap, 200);
 }
 
 /* ── UTILITÁRIOS VISUAIS ── */
@@ -646,6 +666,7 @@ function go(){
   ezRendered=false;
   if(document.getElementById('tab-ez')?.classList.contains('active'))renderEZ();
   if(document.getElementById('tab-metas')?.classList.contains('active'))renderMetas();
+  if(window._fixGap) setTimeout(window._fixGap, 100);
 }
 
 /* ── ABA EZ ── */
@@ -887,6 +908,7 @@ function setTab(el){
   const tabName=el.textContent.trim();
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   window.scrollTo(0,0);
+  if (window._fixGap) setTimeout(window._fixGap, 50);
   const respGroup=document.getElementById('f-resp-group');
   if(respGroup)respGroup.style.display=tabName==='Performance Atendimento'?'flex':'none';
   if(tabName==='Performance Vendas')document.getElementById('tab-visao').classList.add('active');
