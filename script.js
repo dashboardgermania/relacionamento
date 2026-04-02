@@ -887,12 +887,13 @@ function setTab(el){
   el.classList.add('active');
   const tabName=el.textContent.trim();
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
-  window.scrollTo(0,0);
   const respGroup=document.getElementById('f-resp-group');
   if(respGroup)respGroup.style.display=tabName==='Performance Atendimento'?'flex':'none';
   if(tabName==='Performance Vendas')document.getElementById('tab-visao').classList.add('active');
   else if(tabName==='Performance Atendimento'){document.getElementById('tab-ez').classList.add('active');renderEZ();}
   else if(tabName==='Gestão de Metas'){document.getElementById('tab-metas').classList.add('active');renderMetas();}
+  // Scroll após reflow do browser para garantir posição correta com tabs sticky
+  requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo(0,0)));
 }
 
 /* ── FILTROS PADRÃO — mês atual, todo o mês ── */
