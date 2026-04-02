@@ -23,15 +23,8 @@
   --red-pill:  #C92B1E;
   --circ-bg:   #3A2A14;
 }
-/* Body vermelho preenche o padding-top do page-wrap (área do header) */
-:root[data-theme="dark"] html { background: #C92B1E !important; }
-:root[data-theme="dark"] body { background: #C92B1E !important; color: var(--txt); }
-/* background-clip: content-box → fundo escuro só no conteúdo, não no padding */
-:root[data-theme="dark"] .page-wrap {
-  background-color: var(--bg) !important;
-  background-clip: content-box;
-  background-image: none !important;
-}
+:root[data-theme="dark"] body { background: var(--bg); color: var(--txt); }
+:root[data-theme="dark"] .page-wrap { background: var(--bg); }
 :root[data-theme="dark"] .card {
   background: var(--card-bg) !important;
   border-color: var(--card-bd) !important;
@@ -138,7 +131,7 @@
 /* Sem gap entre header e tabs em nenhum modo */
 .header { margin-bottom: 0 !important; padding-bottom: 0 !important; }
 .tabs-wrap { margin-top: 0 !important; }
-/* page-wrap padding gerenciado via background-clip */
+
 
 /* ─── Bezel evolução ─── */
 .bezel-evo {
