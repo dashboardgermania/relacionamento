@@ -107,8 +107,31 @@
 :root[data-theme="dark"] .circ-bg-fill { fill: #3A2A14 !important; }
 
 /* ─── Tab content — garantir display correto em qualquer tema ─── */
-.tab-content { display: none !important; }
-.tab-content.active { display: block !important; }
+/* Tab visibility — máxima especificidade, anular qualquer position do style.css */
+#tab-visao, #tab-ez, #tab-metas {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  position: static !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+#tab-visao.active, #tab-ez.active, #tab-metas.active {
+  display: block !important;
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  position: static !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+/* Sem gap entre header e tabs em nenhum modo */
+.header { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+.tabs-wrap { margin-top: 0 !important; }
+.page-wrap { padding-top: 0 !important; margin-top: 0 !important; }
 
 /* ─── Bezel evolução ─── */
 .bezel-evo {
