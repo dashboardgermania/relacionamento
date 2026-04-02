@@ -886,9 +886,9 @@ function setTab(el){
   el.classList.add('active');
   const tabName=el.textContent.trim();
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
-  // Mostrar filtro Agente só na aba EZ
+  window.scrollTo(0,0);
   const respGroup=document.getElementById('f-resp-group');
-  if(respGroup)respGroup.style.display=tabName==='Atendimento EZ'?'flex':'none';
+  if(respGroup)respGroup.style.display=tabName==='Performance Atendimento'?'flex':'none';
   if(tabName==='Performance Vendas')document.getElementById('tab-visao').classList.add('active');
   else if(tabName==='Performance Atendimento'){document.getElementById('tab-ez').classList.add('active');renderEZ();}
   else if(tabName==='Gestão de Metas'){document.getElementById('tab-metas').classList.add('active');renderMetas();}
