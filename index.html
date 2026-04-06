@@ -265,8 +265,24 @@
   .c-val { font-size: 38px !important; }
   .c-val-block { flex: 1; }
 
-  /* Círculo menor no mobile */
-  .circ-wrap { transform: scale(0.78); transform-origin: center center; flex-shrink: 0; }
+  /* Círculo menor no mobile — centralizado verticalmente */
+  .circ-wrap {
+    transform: scale(0.78);
+    transform-origin: center center;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .c-center {
+    align-items: center !important;
+    justify-content: space-between;
+  }
+
+  /* Tabela agentes — esconder coluna Classificação no mobile */
+  .ez-table th:last-child,
+  .ez-table td:last-child { display: none !important; }
 
   /* ── Sparklines ── */
   #sp-tp, #sp-tl, #sp-rl { height: 70px !important; }
