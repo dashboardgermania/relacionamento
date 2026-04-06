@@ -371,11 +371,25 @@ function renderMetas() {
   const DARK_KEY = 'germania-dark';
   const root = document.documentElement;
 
+  function collapsePageWrap() {
+    const pw = document.querySelector('.page-wrap');
+    if (!pw) return;
+    if (root.getAttribute('data-theme') === 'dark') {
+      pw.style.minHeight = '0';
+      pw.style.paddingBottom = '0';
+    } else {
+      pw.style.minHeight = '';
+      pw.style.paddingBottom = '';
+    }
+  }
+  window._collapsePageWrap = collapsePageWrap;
+
   function applyDark(on) {
     root.setAttribute('data-theme', on ? 'dark' : 'light');
     const lbl = document.getElementById('btn-dark');
     if (lbl) lbl.textContent = on ? 'Modo claro' : 'Modo escuro';
     try { localStorage.setItem(DARK_KEY, on ? '1' : '0'); } catch(e){}
+    collapsePageWrap();
   }
 
   window.toggleDark = function() {
@@ -386,7 +400,7 @@ function renderMetas() {
   // Inicializar
   const saved = (() => { try { return localStorage.getItem(DARK_KEY); } catch(e){ return null; } })();
   applyDark(saved === '1');
-  // Fix gap após render inicial
+  window.addEventListener('load', collapsePageWrap);
 })();
 
 async function loadData() {
