@@ -265,24 +265,36 @@
   .c-val { font-size: 38px !important; }
   .c-val-block { flex: 1; }
 
-  /* Círculo menor no mobile — centralizado verticalmente */
+  /* Círculo no mobile — sem scale, SVG reduzido diretamente */
   .circ-wrap {
-    transform: scale(0.78);
-    transform-origin: center center;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    position: relative;
+    overflow: visible;
   }
+  .circ-wrap svg { width: 72px !important; height: 72px !important; }
+  .circ-lbl { font-size: 8px; }
+  .circ-tip { display: none !important; }
   .c-center {
     align-items: center !important;
     justify-content: space-between;
+    gap: 8px;
   }
 
   /* Tabela agentes — esconder coluna Classificação no mobile */
   .ez-table th:last-child,
   .ez-table td:last-child { display: none !important; }
+
+  /* Tabela agentes — sem overflow scroll, largura normal */
+  .ez-table { width: 100%; table-layout: fixed; }
+  [style*="overflow-x:auto"] { overflow-x: visible !important; }
+
+  /* Abas — caber as 3 sem scroll */
+  .tabs { padding: 0 8px; gap: 0; min-width: unset; }
+  .tab { font-size: 9px !important; padding: 7px 8px 6px !important; letter-spacing: 0.5px !important; flex: 1; text-align: center; }
 
   /* ── Sparklines ── */
   #sp-tp, #sp-tl, #sp-rl { height: 70px !important; }
