@@ -174,6 +174,136 @@
 :root[data-theme="dark"] .dark-toggle-track { background: #FFA62C; }
 :root[data-theme="dark"] .dark-toggle-thumb { background: #1A1208; transform: translateX(16px); }
 :root[data-theme="dark"] .dark-toggle-lbl { color: var(--gold-lt); }
+
+/* ════════════════════════════════════════
+   MOBILE — max-width: 768px
+   ════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── Header ── */
+  .header-inner {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 16px 10px;
+  }
+  .h-logo {
+    width: 52px !important;
+    height: 52px !important;
+  }
+  .h-logo img {
+    width: 52px !important;
+    height: 52px !important;
+  }
+  .h-div { display: none; }
+  .h-brand { flex: 1; min-width: 0; }
+  .h-brand .eyebrow { font-size: 9px; letter-spacing: 2px; margin-bottom: 2px; }
+  .h-brand h1 { font-size: 22px; letter-spacing: 0.5px; }
+
+  /* KPIs: linha compacta abaixo do título, ocupa linha inteira */
+  .h-kpis-wrap {
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    margin-left: 0;
+    gap: 4px;
+    order: 3;
+  }
+  .h-resumo-lbl {
+    display: block !important;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-align: center;
+  }
+  .h-kpis {
+    display: flex !important;
+    gap: 4px;
+    width: 100%;
+  }
+  .hk {
+    flex: 1;
+    min-width: 0 !important;
+    padding: 6px 8px !important;
+  }
+  .hk-l { font-size: 8px; letter-spacing: 1.5px; margin-bottom: 2px; }
+  .hk-v { font-size: 20px !important; }
+  .hk-v .u { font-size: 10px; }
+  .hk-bar-footer { display: none; }
+
+  /* ── Abas ── */
+  .tabs-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tabs {
+    padding: 0 12px;
+    gap: 2px;
+    flex-wrap: nowrap;
+    min-width: max-content;
+  }
+  .tab { font-size: 11px; padding: 8px 14px 7px; letter-spacing: 1px; white-space: nowrap; }
+
+  /* ── Filtros ── */
+  .filters {
+    padding: 8px 12px !important;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .filters-right {
+    width: 100%;
+    justify-content: space-between;
+    margin-left: 0 !important;
+    order: 10;
+  }
+  .f-shortcuts { flex-wrap: wrap; gap: 4px; }
+  .f-upd { font-size: 9px; }
+  .dark-toggle-lbl { font-size: 11px; }
+
+  /* ── Grid de cards: 1 coluna ── */
+  .row { grid-template-columns: 1fr !important; gap: 8px; margin-bottom: 8px; }
+
+  /* ── Card principal ── */
+  .main { padding: 10px 12px !important; }
+  .card-ab { padding: 12px 14px !important; height: auto !important; }
+  .c-center { flex-direction: row; align-items: center; gap: 12px; }
+  .c-val { font-size: 38px !important; }
+  .c-val-block { flex: 1; }
+
+  /* Círculo menor no mobile */
+  .circ-wrap { transform: scale(0.78); transform-origin: center center; flex-shrink: 0; }
+
+  /* ── Sparklines ── */
+  #sp-tp, #sp-tl, #sp-rl { height: 70px !important; }
+
+  /* ── EZ ── */
+  .ez-kpi-val { font-size: 34px !important; }
+  .ez-bar-label { min-width: 120px; font-size: 10px; }
+
+  /* Heatmap: scroll horizontal */
+  #ez-heatmap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Tabela performance: scroll horizontal */
+  .ez-table { font-size: 12px; }
+  .ez-table th { font-size: 9px; padding: 6px 8px; }
+  .ez-table td { font-size: 12px; padding: 8px 8px; }
+  [style*="overflow-x:auto"] { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+
+  /* ── Metas ── */
+  /* Cards do time e agentes já viram 1 coluna pelo .row override */
+  /* Ranking: full width abaixo dos agentes */
+  .card-ab[style*="padding-bottom:16px"] { padding-bottom: 14px !important; }
+
+  /* ── Cards CSAT ── */
+  .card-c { height: auto !important; min-height: 90px; }
+
+  /* ── Footer ── */
+  .footer span { font-size: 10px; letter-spacing: 1px; }
+}
+
+/* Extra pequeno: 375px e abaixo */
+@media (max-width: 375px) {
+  .h-brand h1 { font-size: 18px; }
+  .hk-v { font-size: 17px !important; }
+  .tab { font-size: 10px; padding: 7px 10px 6px; }
+  .c-val { font-size: 32px !important; }
+  .ez-kpi-val { font-size: 28px !important; }
+}
 </style>
 </head>
 <body>
