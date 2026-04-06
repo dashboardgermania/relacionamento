@@ -342,6 +342,70 @@ function renderMetas() {
     </div>`;
   }).join('');
 
+  // ── Consolidado do Time ──
+  const totalMeta  = indicadores.map(ind => timeRow(ind).meta).reduce((a,b)=>a+b,0);
+  const totalReal  = indicadores.map(ind => timeRow(ind).real).reduce((a,b)=>a+b,0);
+  const mediaGeral = indicadores.reduce((sum, ind) => {
+    const t = timeRow(ind);
+    return sum + (t.meta ? t.real/t.meta*100 : 0);
+  }, 0) / Math.max(indicadores.length, 1);
+
+  const cGeral = mediaGeral >= 100 ? SC.green : mediaGeral >= 70 ? SC.yellow : SC.red;
+  const bgGeral = mediaGeral >= 100 ? 'rgba(30,122,66,0.10)' : mediaGeral >= 70 ? 'rgba(150,106,0,0.10)' : 'rgba(184,36,24,0.08)';
+
+  const faltaItems = indicadores.map(ind => {
+    const t = timeRow(ind);
+    const falta = Math.max(0, t.meta - t.real);
+    if (!falta || !t.meta) return null;
+    return fmtV(ind, falta) + ' de ' + ind.toLowerCase();
+  }).filter(Boolean);
+
+  const destaqueAg = ranking[0];
+  const destaqueHTML = destaqueAg ? `
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(180,165,140,0.12);">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:0.8px;
+        color:var(--txt-faint);text-transform:uppercase;margin-bottom:6px;">Destaque do mês</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">🏆</span>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;
+            color:var(--txt);">${destaqueAg.ag}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--txt-faint);">
+            ${Math.round(destaqueAg.med)}% de atingimento médio em ${nomeMes}
+          </div>
+        </div>
+      </div>
+    </div>` : '';
+
+  const consolidadoHTML = `
+  <div class="row" style="grid-template-columns:1fr;">
+    <div class="card line-l3" data-s="none" style="height:auto;">
+      <div class="card-ab" style="height:auto;padding-bottom:20px;">
+        <div class="c-header">
+          <div class="c-title pill-l3">Consolidado do Time · ${nomeMes}</div>
+          <div class="c-sub">Visão geral de atingimento — média de todos os indicadores</div>
+        </div>
+        <div style="margin-top:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:700;
+              color:${cGeral};">${Math.round(mediaGeral)}%</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--txt-faint);">
+              da meta geral atingida
+            </div>
+          </div>
+          <div style="height:10px;background:rgba(180,165,140,0.12);border-radius:5px;overflow:hidden;margin-bottom:10px;">
+            <div style="height:100%;width:${Math.min(mediaGeral,100).toFixed(1)}%;background:${cGeral};
+              border-radius:5px;transition:width 0.9s ease;"></div>
+          </div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--txt-faint);">
+            ${faltaItems.length ? 'Ainda falta: ' + faltaItems.join(' · ') : '✓ Todas as metas atingidas!'}
+          </div>
+          ${destaqueHTML}
+        </div>
+      </div>
+    </div>
+  </div>`;
+
   el.innerHTML = `
   <!-- METAS TEAM -->
   <div class="row" style="grid-template-columns:repeat(${Math.min(indicadores.length,3)},1fr);">
@@ -362,7 +426,10 @@ function renderMetas() {
         <div style="margin-top:12px;">${rankHTML}</div>
       </div>
     </div>
-  </div>`;
+  </div>
+
+  <!-- CONSOLIDADO -->
+  ${consolidadoHTML}`;
 }
 
 
