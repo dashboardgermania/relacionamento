@@ -136,6 +136,7 @@ function sumSemanal(indicador, weeks) {
 }
 
 /* ── PARSER EZ TICKETS ── */
+const EZ_EXCLUIR = ['Mirian']; // agentes excluídos de todos os cálculos
 function processEZTickets(rows) {
   return rows.map(r => {
     const d = r['Data'] || '';
@@ -155,7 +156,7 @@ function processEZTickets(rows) {
       Classificacao: r['Classificacao_Principal'] || '',
       Ativo: r['Ativo'] || ''
     };
-  }).filter(r => r.DataStr);
+  }).filter(r => r.DataStr && !EZ_EXCLUIR.includes(r.Agente));
 }
 
 
