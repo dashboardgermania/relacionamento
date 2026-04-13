@@ -227,7 +227,9 @@ function renderMetas() {
 
   const dados = getMetasData(mes);
   const indicadores = [...new Set(dados.map(d => d.indicador))];
-  const agentes     = [...new Set(dados.filter(d => d.agente !== 'Time').map(d => d.agente))];
+  // Exibir só agentes com pelo menos uma meta > 0 no mês selecionado
+  const agentes = [...new Set(dados.filter(d => d.agente !== 'Time').map(d => d.agente))]
+    .filter(ag => dados.some(d => d.agente === ag && d.meta > 0));
   const timeRow     = (ind) => dados.find(d => d.agente === 'Time' && d.indicador === ind) || {meta:0,real:0};
 
   const SC = {green:'#1E7A42', yellow:'#966A00', red:'#B82418', gray:'#9BA8B0'};
