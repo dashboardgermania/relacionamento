@@ -109,12 +109,6 @@ function parseSemanal(text) {
 
 /* ── FILTRO: semanas por mês+semana ── */
 function getWeeksForFilter(mes, sem) {
-  // Suporte a trimestre: _triMeses acumula as 4 semanas dos 3 meses
-  if (window._triMeses) {
-    const weeks = [];
-    window._triMeses.forEach(m => [1,2,3,4].forEach(s => weeks.push({mes:m, sem:s})));
-    return weeks;
-  }
   if (!sem || sem === 0) return [1,2,3,4].map(s => ({mes, sem: s}));
   return [{mes, sem}];
 }
@@ -616,13 +610,19 @@ function spark(id,vals,labs,fmtFn,highlightIdx=-1){
 
 /* ── VISÃO GERAL ── */
 function go(){
-  if (!window._triMeses) {
-    const fTri = document.getElementById('f-tri');
-    if (fTri) fTri.value = '';
-  }
   const mes   = parseInt(document.getElementById('f-mes')?.value) || (new Date().getMonth()+1);
   const sem   = parseInt(document.getElementById('f-sem')?.value) || 0;
-  const weeks = getWeeksForFilter(mes, sem);
+  const tri   = parseInt(document.getElementById('f-tri')?.value) || 0;
+
+  // Se trimestre selecionado, acumular os 3 meses; senão filtro normal
+  const TRI_MESES = { 1:[1,2,3], 2:[4,5,6], 3:[7,8,9], 4:[10,11,12] };
+  let weeks;
+  if (tri && TRI_MESES[tri]) {
+    weeks = [];
+    TRI_MESES[tri].forEach(m => [1,2,3,4].forEach(s => weeks.push({mes:m, sem:s})));
+  } else {
+    weeks = getWeeksForFilter(mes, sem);
+  }
 
   const alc = sumSemanal('Alcance', weeks);
   const at  = sumSemanal('Engajamento / Atendimento', weeks);
@@ -734,7 +734,9 @@ function go(){
   }
   const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const resumoEl=document.getElementById('h-resumo-lbl');
-  if(resumoEl)resumoEl.textContent=sem?MESES[mes-1]+' · S'+sem:'Resumo '+MESES[mes-1];
+  const triSel = parseInt(document.getElementById('f-tri')?.value) || 0;
+  const triNomes = {1:'Q1 · Jan–Mar', 2:'Q2 · Abr–Jun', 3:'Q3 · Jul–Set', 4:'Q4 · Out–Dez'};
+  if(resumoEl) resumoEl.textContent = triSel ? triNomes[triSel] : sem ? MESES[mes-1]+' · S'+sem : 'Resumo '+MESES[mes-1];
 
   // Atualiza abas ativas ao filtrar
   ezRendered=false;
@@ -954,6 +956,8 @@ function renderHeatmapMatrix(DAYS,matrix){
 
 /* ── CONTROLES ── */
 function reset(){
+  const fTri = document.getElementById('f-tri');
+  if (fTri) fTri.value = '';
   const today=new Date();
   const m=document.getElementById('f-mes'),s=document.getElementById('f-sem'),r=document.getElementById('f-resp');
   if(m)m.value=String(today.getMonth()+1);
@@ -965,17 +969,10 @@ function reset(){
 
 function setTrimestre(q) {
   if (!q) return;
-  const tri = parseInt(q);
-  const meses = { 1:[1,2,3], 2:[4,5,6], 3:[7,8,9], 4:[10,11,12] };
-  const ms = meses[tri];
-  if (!ms) return;
-  const fMes = document.getElementById('f-mes');
+  // Limpar semana ao selecionar trimestre
   const fSem = document.getElementById('f-sem');
-  if (fMes) fMes.value = ms[2];
   if (fSem) fSem.value = 0;
-  window._triMeses = ms;
   go();
-  window._triMeses = null;
 }
 
 function setShortcut(type){
