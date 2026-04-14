@@ -109,7 +109,12 @@ function parseSemanal(text) {
 
 /* ── FILTRO: semanas por mês+semana ── */
 function getWeeksForFilter(mes, sem) {
-  // sem=0 → mês todo (4 semanas); sem=1..4 → semana específica
+  // Suporte a trimestre: _triMeses acumula as 4 semanas dos 3 meses
+  if (window._triMeses) {
+    const weeks = [];
+    window._triMeses.forEach(m => [1,2,3,4].forEach(s => weeks.push({mes:m, sem:s})));
+    return weeks;
+  }
   if (!sem || sem === 0) return [1,2,3,4].map(s => ({mes, sem: s}));
   return [{mes, sem}];
 }
@@ -611,6 +616,10 @@ function spark(id,vals,labs,fmtFn,highlightIdx=-1){
 
 /* ── VISÃO GERAL ── */
 function go(){
+  if (!window._triMeses) {
+    const fTri = document.getElementById('f-tri');
+    if (fTri) fTri.value = '';
+  }
   const mes   = parseInt(document.getElementById('f-mes')?.value) || (new Date().getMonth()+1);
   const sem   = parseInt(document.getElementById('f-sem')?.value) || 0;
   const weeks = getWeeksForFilter(mes, sem);
@@ -952,6 +961,21 @@ function reset(){
   if(r)r.value='';
   document.querySelectorAll('.btn-sh').forEach(b=>b.classList.remove('active'));
   go();
+}
+
+function setTrimestre(q) {
+  if (!q) return;
+  const tri = parseInt(q);
+  const meses = { 1:[1,2,3], 2:[4,5,6], 3:[7,8,9], 4:[10,11,12] };
+  const ms = meses[tri];
+  if (!ms) return;
+  const fMes = document.getElementById('f-mes');
+  const fSem = document.getElementById('f-sem');
+  if (fMes) fMes.value = ms[2];
+  if (fSem) fSem.value = 0;
+  window._triMeses = ms;
+  go();
+  window._triMeses = null;
 }
 
 function setShortcut(type){
