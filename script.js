@@ -713,17 +713,29 @@ function go(){
   circ('ci-lit',mrL?(tLit/mrL*100):0,SC[sL],pl(Math.round(tLit),Math.round(mrL)));
   circ('ci-rec',mrR?(tRec/mrR*100):0,SC[sR],pl(Math.round(tRec),Math.round(mrR)));
 
-  // Sparklines — sempre mostra as 4 semanas do mês selecionado para contexto
-  SEM=['S1','S2','S3','S4'];
-  const spP=[],spL=[],spR=[];
-  [1,2,3,4].forEach(s=>{
-    const fv=SEMANAL_RAW['Faturamento']?.[mes]?.[s]?.res||0;
-    const pv=SEMANAL_RAW['Pedidos']?.[mes]?.[s]?.res||0;
-    const lv=SEMANAL_RAW['Litros vendidos']?.[mes]?.[s]?.res||0;
-    spP.push(pv?fv/pv:0); spL.push(pv?lv/pv:0); spR.push(lv?fv/lv:0);
-  });
-  const hlIdx = sem > 0 ? sem - 1 : -1;
-  requestAnimationFrame(()=>{ spark('sp-tp',spP,SEM,fR,hlIdx); spark('sp-tl',spL,SEM,fL,hlIdx); spark('sp-rl',spR,SEM,v=>'R$'+v.toFixed(2).replace('.',','),hlIdx); });
+  // Sparklines — filtra semanas sem dados para evitar quedas bruscas para zero
+  {
+    const spMes = (mesRaw === 0 || tri) ? (new Date().getMonth()+1) : mes;
+    const allSems = [1,2,3,4].map(s => {
+      const fv = SEMANAL_RAW['Faturamento']?.[spMes]?.[s]?.res || 0;
+      const pv = SEMANAL_RAW['Pedidos']?.[spMes]?.[s]?.res || 0;
+      const lv = SEMANAL_RAW['Litros vendidos']?.[spMes]?.[s]?.res || 0;
+      return { s, fv, pv, lv, hasData: pv > 0 || fv > 0 };
+    });
+    // Só plota semanas com dado — mínimo 2 pontos para desenhar linha
+    const comDado = allSems.filter(d => d.hasData);
+    const semsFiltradas = comDado.length >= 2 ? comDado : allSems;
+    const spLabels = semsFiltradas.map(d => 'S'+d.s);
+    const spP = semsFiltradas.map(d => d.pv ? d.fv/d.pv : 0);
+    const spL = semsFiltradas.map(d => d.pv ? d.lv/d.pv : 0);
+    const spR = semsFiltradas.map(d => d.lv ? d.fv/d.lv : 0);
+    const hlIdx = sem > 0 ? semsFiltradas.findIndex(d => d.s === sem) : -1;
+    requestAnimationFrame(()=>{
+      spark('sp-tp', spP, spLabels, fR, hlIdx);
+      spark('sp-tl', spL, spLabels, fL, hlIdx);
+      spark('sp-rl', spR, spLabels, v=>'R$'+v.toFixed(2).replace('.',','), hlIdx);
+    });
+  }
 
   hkpi('hk-lit','hv-lit','ht-lit',tLit,mrL,v=>fmt(Math.round(v))+'<span class="u"> L</span>');
   hkpi('hk-rec','hv-rec','ht-rec',tRec,mrR,v=>'R$'+Math.round(v/1000)+'k');
