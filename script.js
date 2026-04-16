@@ -610,14 +610,19 @@ function spark(id,vals,labs,fmtFn,highlightIdx=-1){
 
 /* ── VISÃO GERAL ── */
 function go(){
-  const mes   = parseInt(document.getElementById('f-mes')?.value) || (new Date().getMonth()+1);
+  const mesRaw = parseInt(document.getElementById('f-mes')?.value);
+  const mes   = mesRaw || (new Date().getMonth()+1);
   const sem   = parseInt(document.getElementById('f-sem')?.value) || 0;
   const tri   = parseInt(document.getElementById('f-tri')?.value) || 0;
 
-  // Se trimestre selecionado, acumular os 3 meses; senão filtro normal
+  // Acumular semanas: ano completo (mes=0), trimestre, ou normal
   const TRI_MESES = { 1:[1,2,3], 2:[4,5,6], 3:[7,8,9], 4:[10,11,12] };
   let weeks;
-  if (tri && TRI_MESES[tri]) {
+  if (mesRaw === 0) {
+    // Todos os meses do ano
+    weeks = [];
+    [1,2,3,4,5,6,7,8,9,10,11,12].forEach(m => [1,2,3,4].forEach(s => weeks.push({mes:m, sem:s})));
+  } else if (tri && TRI_MESES[tri]) {
     weeks = [];
     TRI_MESES[tri].forEach(m => [1,2,3,4].forEach(s => weeks.push({mes:m, sem:s})));
   } else {
@@ -655,7 +660,7 @@ function go(){
   document.getElementById('v-rl').textContent='R$ '+rL.toFixed(2).replace('.',',');
 
   // Bezels L1 — info mais útil que "X% de conversão"
-  const bzAlc = tAlc ? '1 atend a cada ' + Math.round(tAlc / Math.max(tAt,1)) + ' leads' : '—';
+  const bzAlc = tAlc ? '1 atend a cada ' + Math.round(tAlc / Math.max(tAt,1)) + ' contatos' : '—';
   const bzAt  = tAt  ? Math.round(tOrc / Math.max(tAt,1) * 100) + '% viram orçamento' : '—';
   const bzOrc = tOrc ? Math.round(tPed / Math.max(tOrc,1) * 100) + '% fecharam pedido' : '—';
   const bzPed = tOrc ? Math.round(tPed/Math.max(tOrc,1)*100)+'% dos orç. viraram pedido' : '—';
@@ -694,8 +699,8 @@ function go(){
   setEvo('bz-rec', tRec, fat.anoAnt);
 
   setS('c-orc',sO);setS('c-ped',sP);setS('c-lit',sL);setS('c-rec',sR);
-  setTip('ct-alc',fmt(Math.round(tAt))+' atend de '+fmt(Math.round(tAlc))+' alcance');
-  setTip('ct-at',fmt(Math.round(tOrc))+' orc de '+fmt(Math.round(tAt))+' atend');
+  setTip('ct-alc','Meta: '+fmt(Math.round(mrAlc))+' · Real: '+fmt(Math.round(tAlc)));
+  setTip('ct-at','Meta: '+fmt(Math.round(mrAt))+' · Real: '+fmt(Math.round(tAt)));
   setTip('ct-orc','Meta: '+fmt(Math.round(mrO))+' · Real: '+fmt(Math.round(tOrc)));
   setTip('ct-ped','Meta: '+fmt(Math.round(mrP))+' · Real: '+fmt(Math.round(tPed)));
   setTip('ct-lit','Meta: '+fmt(Math.round(mrL))+'L · Real: '+fmt(Math.round(tLit))+'L');
@@ -736,7 +741,7 @@ function go(){
   const resumoEl=document.getElementById('h-resumo-lbl');
   const triSel = parseInt(document.getElementById('f-tri')?.value) || 0;
   const triNomes = {1:'Q1 · Jan–Mar', 2:'Q2 · Abr–Jun', 3:'Q3 · Jul–Set', 4:'Q4 · Out–Dez'};
-  if(resumoEl) resumoEl.textContent = triSel ? triNomes[triSel] : sem ? MESES[mes-1]+' · S'+sem : 'Resumo '+MESES[mes-1];
+  if(resumoEl) resumoEl.textContent = mesRaw===0 ? 'Resumo Anual' : triSel ? triNomes[triSel] : sem ? MESES[mes-1]+' · S'+sem : 'Resumo '+MESES[mes-1];
 
   // Atualiza abas ativas ao filtrar
   ezRendered=false;
@@ -753,7 +758,10 @@ function renderEZ(){
 
   const sem  = parseInt(document.getElementById('f-sem')?.value) || 0;
   const resp = document.getElementById('f-resp')?.value || '';
-  const {de, ate} = getDateRangeForFilter(mes, sem);
+  const ezMesRaw = parseInt(document.getElementById('f-mes')?.value);
+  const {de, ate} = ezMesRaw === 0
+    ? { de: `${new Date().getFullYear()}-01-01`, ate: `${new Date().getFullYear()}-12-31` }
+    : getDateRangeForFilter(mes, sem);
 
   const data=EZ_TICKETS.filter(d=>{
     if(de&&d.DataStr<de)return false;
