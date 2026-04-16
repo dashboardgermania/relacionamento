@@ -129,7 +129,13 @@ function sumSemanal(indicador, weeks) {
   let meta = 0, res = 0, anoAnt = 0;
   weeks.forEach(({mes, sem}) => {
     const d = SEMANAL_RAW[indicador]?.[mes]?.[sem];
-    if (d) { meta += d.meta||0; res += d.res||0; anoAnt += d.anoAnt||0; }
+    if (d) {
+      meta   += d.meta   || 0;
+      res    += d.res    || 0;
+      // Só conta anoAnt se houver resultado em 2026 — evita comparação assimétrica
+      // em meses parciais (ex: Abril com só S1/S2 preenchido)
+      if (d.res > 0) anoAnt += d.anoAnt || 0;
+    }
   });
   return {meta, res, anoAnt};
 }
