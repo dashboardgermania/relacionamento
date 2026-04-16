@@ -202,10 +202,27 @@ function renderMetas() {
   const el = document.getElementById('metas-main');
   if (!el) return;
 
-  const mes = parseInt(document.getElementById('f-mes')?.value) || (new Date().getMonth()+1);
+  const mesRawM  = parseInt(document.getElementById('f-mes')?.value);
+  const mes      = mesRawM || (new Date().getMonth()+1);
+  const triSelM  = parseInt(document.getElementById('f-tri')?.value) || 0;
+  const TRI_MAP  = { 1:[1,2,3], 2:[4,5,6], 3:[7,8,9], 4:[10,11,12] };
+  const TRI_NOMES = { 1:'Q1 · Jan–Mar', 2:'Q2 · Abr–Jun', 3:'Q3 · Jul–Set', 4:'Q4 · Out–Dez' };
+
+  // Determinar quais meses acumular
+  let mesesAtivos;
+  if (mesRawM === 0) {
+    mesesAtivos = [1,2,3,4,5,6,7,8,9,10,11,12]; // ano completo
+  } else if (triSelM && TRI_MAP[triSelM]) {
+    mesesAtivos = TRI_MAP[triSelM]; // trimestre
+  } else {
+    mesesAtivos = [mes]; // mês único
+  }
+
   const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const nomeMes = MESES[mes-1];
+  const nomeMes = mesRawM === 0 ? 'Ano Completo'
+                : triSelM ? TRI_NOMES[triSelM]
+                : MESES[mes-1];
 
   // Se não há dados ainda → skeleton de espera
   if (!METAS_RAW.length) {
@@ -224,7 +241,16 @@ function renderMetas() {
     return;
   }
 
-  const dados = getMetasData(mes);
+  // Acumular meta e real de todos os meses ativos
+  const dadosBase = METAS_RAW.filter(d => mesesAtivos.includes(d.mes));
+  const dadosMap = {};
+  dadosBase.forEach(d => {
+    const key = d.agente + '|' + d.indicador;
+    if (!dadosMap[key]) dadosMap[key] = { agente: d.agente, indicador: d.indicador, mes: mes, meta: 0, real: 0 };
+    dadosMap[key].meta += d.meta;
+    dadosMap[key].real += d.real;
+  });
+  const dados = Object.values(dadosMap);
   const indicadores = [...new Set(dados.map(d => d.indicador))];
   // Exibir só agentes com pelo menos uma meta > 0 no mês selecionado
   const agentes = [...new Set(dados.filter(d => d.agente !== 'Time').map(d => d.agente))]
