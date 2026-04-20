@@ -669,7 +669,20 @@ function go(){
   const fat = sumSemanal('Faturamento', weeks);
 
   const tAlc=alc.res,mrAlc=alc.meta;
-  const tAt=at.res,mrAt=at.meta;
+  // Atendimentos: usar count real do EZ_TICKETS (fonte mais confiável)
+  const {de: ezDe, ate: ezAte} = mesRaw === 0
+    ? { de: `${new Date().getFullYear()}-01-01`, ate: `${new Date().getFullYear()}-12-31` }
+    : getDateRangeForFilter(mes, sem);
+  const ezMesFilter = tri && TRI_MESES[tri] ? TRI_MESES[tri] : null;
+  const ezCount = EZ_TICKETS.filter(d => {
+    if (ezMesFilter) {
+      const m = parseInt(d.DataStr.slice(5,7));
+      return ezMesFilter.includes(m);
+    }
+    return (!ezDe || d.DataStr >= ezDe) && (!ezAte || d.DataStr <= ezAte);
+  }).length;
+  const tAt = ezCount || at.res;  // fallback para planilha se EZ vazio
+  const mrAt=at.meta;
   const tOrc=orc.res,mrO=orc.meta;
   const tPed=ped.res,mrP=ped.meta;
   const tLit=lit.res,mrL=lit.meta;
@@ -724,7 +737,7 @@ function go(){
     el.style.color = pct >= 0 ? '#1E7A42' : '#B82418';
   }
   setEvo('bz-alc', tAlc, alc.anoAnt);
-  setEvo('bz-at',  tAt,  at.anoAnt);
+  setEvo('bz-at',  tAt,  at.anoAnt); // anoAnt da planilha, tAt do EZ
   setEvo('bz-orc', tOrc, orc.anoAnt);
   setEvo('bz-ped', tPed, ped.anoAnt);
   setEvo('bz-lit', tLit, lit.anoAnt);
