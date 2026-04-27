@@ -1070,7 +1070,8 @@ function renderEZ(){
       }
     });
 
-    const horas = Object.keys(horaBuckets).map(Number).filter(h => horaBuckets[h].total >= 3).sort((a,b)=>a-b);
+    // Só horários comerciais (08h-17h) — remove madrugada e noite
+    const horas = Object.keys(horaBuckets).map(Number).filter(h => h >= HC_START && h < HC_END && horaBuckets[h].total >= 3).sort((a,b)=>a-b);
     function fmtH(m){ const min=Math.round(m); return min<60?min+'min':Math.floor(min/60)+'h'+(min%60?String(min%60).padStart(2,'0'):''); }
 
     // Gerar cards de horário com ordenação dinâmica
@@ -1109,12 +1110,13 @@ function renderEZ(){
           <div class="c-header" style="flex-wrap:wrap;gap:8px;">
             <div>
               <div class="c-title pill-l3">Janelas Críticas de Atendimento</div>
-              <div class="c-sub">TPI calculado apenas para tickets no horário comercial (08h–18h) · * = sem dados de TPI</div>
+              <div class="c-sub">Horário comercial 08h–18h · TPI e perda calculados apenas nesse período</div>
             </div>
-            <div style="display:flex;gap:6px;margin-left:auto;">
-              <button onclick="ez12Sort('cron',this)" class="ez12-btn ez12-active" style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid rgba(180,165,140,0.3);background:rgba(180,165,140,0.1);color:var(--txt-faint);cursor:pointer;letter-spacing:0.5px;">🕐 Horário</button>
-              <button onclick="ez12Sort('perda',this)" class="ez12-btn" style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid rgba(180,165,140,0.3);background:rgba(180,165,140,0.1);color:var(--txt-faint);cursor:pointer;letter-spacing:0.5px;">⚠️ Maior Perda</button>
-              <button onclick="ez12Sort('tpi',this)" class="ez12-btn" style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid rgba(180,165,140,0.3);background:rgba(180,165,140,0.1);color:var(--txt-faint);cursor:pointer;letter-spacing:0.5px;">🐢 Maior TPI</button>
+            <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+              <span style="font-family:Barlow,sans-serif;font-size:10px;color:var(--txt-faint);letter-spacing:0.8px;">Ordenar</span>
+              <button onclick="ez12Sort('cron',this)" class="ez12-btn ez12-active" style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid rgba(180,165,140,0.3);background:rgba(180,165,140,0.1);color:var(--txt-faint);cursor:pointer;letter-spacing:0.5px;">Horário</button>
+              <button onclick="ez12Sort('perda',this)" class="ez12-btn" style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid rgba(180,165,140,0.3);background:rgba(180,165,140,0.1);color:var(--txt-faint);cursor:pointer;letter-spacing:0.5px;">Maior Perda</button>
+              <button onclick="ez12Sort('tpi',this)" class="ez12-btn" style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid rgba(180,165,140,0.3);background:rgba(180,165,140,0.1);color:var(--txt-faint);cursor:pointer;letter-spacing:0.5px;">Maior TPI</button>
             </div>
           </div>
           <div id="ez12-grid" style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
