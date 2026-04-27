@@ -941,8 +941,8 @@ function renderEZ(){
     return{nome:a,tickets:ag.length,fin,tpiMin:tpi,tmaMin:tma,topClass};
   }).filter(Boolean);
 
-  function fmtMin(min){
-    min=Math.round(min);
+  function fmtMin(v){
+    const min=Math.round(v);
     if(min<60)return min+'min';
     return Math.floor(min/60)+'h '+String(min%60).padStart(2,'0')+'min';
   }
