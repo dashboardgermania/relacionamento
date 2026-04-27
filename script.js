@@ -1080,19 +1080,20 @@ function renderEZ(){
         const b = horaBuckets[h];
         const perdaPct = b.total ? (b.semClass/b.total*100) : 0;
         const tpiVal   = b.tpiCount ? b.tpiSum/b.tpiCount : null;
+        // Sem Classificação: <30=verde, 30-49=amarelo, >=50=vermelho
         const cP = perdaPct>=50?'#B82418':perdaPct>=30?'#966A00':'#2E8B4A';
-        const cT = tpiVal===null?'#9BA8B0':tpiVal>=60?'#B82418':tpiVal>=20?'#966A00':'#2E8B4A';
+        // TPI: <25=verde, 25-39=amarelo, >=40=vermelho
+        const cT = tpiVal===null?'#9BA8B0':tpiVal>=40?'#B82418':tpiVal>=25?'#966A00':'#2E8B4A';
         const tpiStr = tpiVal!==null ? fmtH(tpiVal) : '—';
-        const tpiNote = (h < HC_START || h >= HC_END) ? ' *' : '';
         return '<div style="background:rgba(180,165,140,0.06);border-radius:6px;padding:10px 12px;">'
           +'<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">'
           +'<span style="font-family:Barlow,sans-serif;font-size:22px;font-weight:800;color:var(--txt);">'+HORA_LABELS[h]+'</span>'
           +'<span style="font-family:Barlow,sans-serif;font-size:12px;font-weight:600;color:var(--txt-faint);">'+b.total+' tickets</span>'
           +'</div>'
           +'<div style="display:flex;gap:16px;">'
-          +'<div><div style="font-family:Barlow,sans-serif;font-size:9px;letter-spacing:0.8px;color:var(--txt-faint);margin-bottom:2px;">SEM CLASS.</div>'
+          +'<div><div style="font-family:Barlow,sans-serif;font-size:9px;letter-spacing:0.8px;color:var(--txt-faint);margin-bottom:2px;">SEM CLASSIF.</div>'
           +'<div style="font-family:Barlow,sans-serif;font-size:20px;font-weight:700;color:'+cP+';">'+perdaPct.toFixed(0)+'%</div></div>'
-          +'<div><div style="font-family:Barlow,sans-serif;font-size:9px;letter-spacing:0.8px;color:var(--txt-faint);margin-bottom:2px;">TPI MÉDIO'+tpiNote+'</div>'
+          +'<div><div style="font-family:Barlow,sans-serif;font-size:9px;letter-spacing:0.8px;color:var(--txt-faint);margin-bottom:2px;">TPI MÉDIO</div>'
           +'<div style="font-family:Barlow,sans-serif;font-size:20px;font-weight:700;color:'+cT+';">'+tpiStr+'</div></div>'
           +'</div>'
           +'</div>';
