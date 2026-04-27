@@ -159,7 +159,9 @@ function processEZTickets(rows) {
       TPI_min: parseFloat(r['TPI_min']) || 0,
       TMA_min: parseFloat(r['TMA_min']) || 0,
       Classificacao: r['Classificacao_Principal'] || '',
-      Ativo: r['Ativo'] || ''
+      Ativo: r['Ativo'] || '',
+      CSAT: (r['Avaliação_CSAT'] || r['Avaliacao_CSAT'] || '').trim(),
+      RespostaCSAT: (r['Resposta_Aberta+ CSAT'] || r['Resposta_Aberta+_CSAT'] || r['RespostaAberta'] || '').trim()
     };
   }).filter(r => r.DataStr && !EZ_EXCLUIR.includes(r.Agente));
 }
@@ -504,6 +506,22 @@ function renderMetas() {
   window.addEventListener('load', collapsePageWrap);
 })();
 
+
+/* ── HELPER CSAT ── */
+function calcCSAT(tickets) {
+  const SATISFEITOS    = ['totalmente satisfeito', 'satisfeito'];
+  const INSATISFEITOS  = ['insatisfeito', 'totalmente insatisfeito'];
+  const avaliados = tickets.filter(t => t.CSAT);
+  const total     = avaliados.length;
+  const sat  = avaliados.filter(t => SATISFEITOS.includes(t.CSAT.toLowerCase())).length;
+  const insat = avaliados.filter(t => INSATISFEITOS.includes(t.CSAT.toLowerCase())).length;
+  return {
+    total,
+    pctSat:   total ? Math.round(sat   / total * 100) : null,
+    pctInsat: total ? Math.round(insat / total * 100) : null,
+  };
+}
+
 async function loadData() {
   setLoading(true);
   try {
@@ -800,6 +818,32 @@ function go(){
   const triNomes = {1:'Q1 · Jan–Mar', 2:'Q2 · Abr–Jun', 3:'Q3 · Jul–Set', 4:'Q4 · Out–Dez'};
   if(resumoEl) resumoEl.textContent = mesRaw===0 ? 'Resumo Anual' : triSel ? triNomes[triSel] : sem ? MESES[mes-1]+' · S'+sem : 'Resumo '+MESES[mes-1];
 
+  // CSAT — calcular do EZ_TICKETS filtrado pelo mesmo período
+  {
+    const csatDef = mesRaw === 0
+      ? {de:`${new Date().getFullYear()}-01-01`, ate:`${new Date().getFullYear()}-12-31`}
+      : getDateRangeForFilter(mes, sem);
+    const csatMF = tri && TRI_MESES[tri] ? TRI_MESES[tri] : null;
+    const csatTickets = EZ_TICKETS.filter(d => {
+      if (mesRaw === 0) return true;
+      if (csatMF) return csatMF.includes(parseInt(d.DataStr.slice(5,7)));
+      return d.DataStr >= csatDef.de && d.DataStr <= csatDef.ate;
+    });
+    const csat = calcCSAT(csatTickets);
+    const elTot = document.getElementById('v-csat-tot');
+    const elSat = document.getElementById('v-csat-sat');
+    const elIns = document.getElementById('v-csat-ins');
+    if (csat.total > 0) {
+      if (elTot) elTot.textContent = csat.total + ' avaliações';
+      if (elSat) { elSat.textContent = csat.pctSat + '%'; elSat.style.color = csat.pctSat >= 70 ? '#1E7A42' : csat.pctSat >= 50 ? '#966A00' : '#B82418'; }
+      if (elIns) { elIns.textContent = csat.pctInsat + '%'; elIns.style.color = csat.pctInsat <= 10 ? '#1E7A42' : csat.pctInsat <= 20 ? '#966A00' : '#B82418'; }
+    } else {
+      if (elTot) elTot.textContent = '—';
+      if (elSat) elSat.textContent = '—';
+      if (elIns) elIns.textContent = '—';
+    }
+  }
+
   // Atualiza abas ativas ao filtrar
   ezRendered=false;
   if(document.getElementById('tab-ez')?.classList.contains('active'))renderEZ();
@@ -864,6 +908,14 @@ function renderEZ(){
   const tpiLabel=fmtMin(tpiMed);
   const tmaLabel=fmtMin(tmaMed);
 
+  // CSAT na aba EZ
+  const csatEZ      = calcCSAT(data);
+  const csatTotEZ   = csatEZ.total > 0 ? csatEZ.total + ' avaliações' : '—';
+  const csatSatEZ   = csatEZ.total > 0 ? csatEZ.pctSat  + '%' : '—';
+  const csatInsEZ   = csatEZ.total > 0 ? csatEZ.pctInsat + '%' : '—';
+  const csatSatColor = csatEZ.pctSat  >= 70 ? '#1E7A42' : csatEZ.pctSat  >= 50 ? '#966A00' : '#B82418';
+  const csatInsColor = csatEZ.pctInsat <= 10 ? '#1E7A42' : csatEZ.pctInsat <= 20 ? '#966A00' : '#B82418';
+
   const html=`
   <div class="row">
     <div class="card line-l1" data-s="none">
@@ -893,6 +945,21 @@ function renderEZ(){
         </div></div>
       </div>
     </div>
+  </div>
+
+  <div class="row">
+    <div class="card line-l2" data-s="none"><div class="card-ab">
+      <div class="c-header"><div class="c-title pill-l2">CSAT · Total</div><div class="c-sub">Avaliações recebidas no período</div></div>
+      <div class="ez-kpi-val" style="font-size:36px;">${csatTotEZ}</div>
+    </div></div>
+    <div class="card line-l2" data-s="none"><div class="card-ab">
+      <div class="c-header"><div class="c-title pill-l2">CSAT · Satisfeitos</div><div class="c-sub">Satisfeito + Totalmente Satisfeito</div></div>
+      <div class="ez-kpi-val" style="font-size:36px;color:${csatSatColor};">${csatSatEZ}</div>
+    </div></div>
+    <div class="card line-l2" data-s="none"><div class="card-ab">
+      <div class="c-header"><div class="c-title pill-l2">CSAT · Insatisfeitos</div><div class="c-sub">Insatisfeito + Totalmente Insatisfeito</div></div>
+      <div class="ez-kpi-val" style="font-size:36px;color:${csatInsColor};">${csatInsEZ}</div>
+    </div></div>
   </div>
 
   <div class="row" style="grid-template-columns:1fr 1fr;">
