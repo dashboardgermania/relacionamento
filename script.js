@@ -932,7 +932,7 @@ function renderEZ(){
     </div></div>
 
     <div class="card line-l2" data-s="none"><div class="card-ab">
-      <div class="c-header"><div class="c-title pill-l2">Distribuição de Avaliações</div><div class="c-sub">Resultado por categoria</div></div>
+      <div class="c-header"><div class="c-title pill-l2">Distribuição de Avaliações</div><div class="c-sub">Resultado por categoria · ${csatEZ.total} avaliações</div></div>
       ${(()=>{
         if(!csatEZ.total) return '<div class="ez-kpi-val" style="font-size:36px;margin-top:8px;">—</div>';
         const cats=[
@@ -945,7 +945,7 @@ function renderEZ(){
         const rows=cats.map(({emoji,label,cat,color})=>{
           const n=data.filter(t=>t.CSAT&&t.CSAT.toLowerCase()===cat).length;
           const pct=Math.round(n/csatEZ.total*100);
-          return '<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">'
+          return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">'
             +'<span style="font-size:12px;flex-shrink:0;width:16px;text-align:center;">'+emoji+'</span>'
             +'<span style="font-family:Barlow,sans-serif;font-size:10px;color:var(--txt-faint);flex-shrink:0;width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+label+'</span>'
             +'<div style="flex:1;height:4px;background:rgba(180,165,140,0.15);border-radius:2px;overflow:hidden;">'
@@ -954,7 +954,7 @@ function renderEZ(){
             +'<span style="font-family:Barlow,sans-serif;font-size:11px;font-weight:700;color:'+color+';min-width:30px;text-align:right;">'+pct+'%</span>'
             +'</div>';
         }).join('');
-        return '<div style="margin-top:8px;">'+rows+'</div>';
+        return '<div style="margin-top:10px;padding-bottom:4px;">'+rows+'</div>';
       })()}
     </div></div>
 
@@ -1011,10 +1011,11 @@ function renderEZ(){
               ${perf.sort((a,b)=>b.tickets-a.tickets).map(p=>{
                 const agCSAT = calcCSAT(data.filter(t=>t.Agente===p.nome));
                 const csatColor = agCSAT.pctSat>=70?'#1E7A42':agCSAT.pctSat>=50?'#966A00':'#B82418';
+                const tipTxt = agCSAT.pctSat+'% satisfeitos · '+agCSAT.pctInsat+'% insatisfeitos · '+agCSAT.total+' aval.';
                 const csatStr = agCSAT.total > 0
-                  ? '<span title="'+agCSAT.pctSat+'% satisfeitos · '+agCSAT.pctInsat+'% insatisfeitos · '+agCSAT.total+' aval." style="cursor:help;color:'+csatColor+';font-weight:700;">'+agCSAT.pctSat+'% 😊</span>'
+                  ? '<span class="ez-csat-tip" data-tip="'+tipTxt+'" style="cursor:help;color:'+csatColor+';font-weight:700;">'+agCSAT.pctSat+'%</span>'
                     +' <span style="font-size:10px;color:var(--txt-faint);">('+agCSAT.total+')</span>'
-                  : '<span style="color:var(--txt-faint);" title="Sem avaliações no período">—</span>';
+                  : '<span style="color:var(--txt-faint);">—</span>';
                 return '<tr>'
                   +'<td class="agent">'+p.nome+'</td>'
                   +'<td class="num">'+p.tickets+'</td>'
@@ -1033,6 +1034,20 @@ function renderEZ(){
   </div>`;
 
   document.getElementById('ez-main').innerHTML=html;
+  // Tooltip para colunas CSAT na tabela — estilo sp-tip
+  const ezMain = document.getElementById('ez-main');
+  let csatTip = document.querySelector('.sp-tip[data-id="ez-csat"]');
+  if(!csatTip){ csatTip=document.createElement('div'); csatTip.className='sp-tip'; csatTip.dataset.id='ez-csat'; document.body.appendChild(csatTip); }
+  ezMain.addEventListener('mouseover', e=>{
+    const el = e.target.closest('.ez-csat-tip');
+    if(el){ csatTip.textContent=el.dataset.tip; csatTip.style.left=(e.clientX+12)+'px'; csatTip.style.top=(e.clientY-32)+'px'; csatTip.style.opacity='1'; }
+  });
+  ezMain.addEventListener('mousemove', e=>{
+    if(e.target.closest('.ez-csat-tip')){ csatTip.style.left=(e.clientX+12)+'px'; csatTip.style.top=(e.clientY-32)+'px'; }
+  });
+  ezMain.addEventListener('mouseout', e=>{
+    if(!e.target.closest('.ez-csat-tip')) csatTip.style.opacity='0';
+  });
   buildHeatmapFromTickets(data);
 }
 
