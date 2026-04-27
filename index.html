@@ -122,21 +122,17 @@
   opacity: 0 !important;
   pointer-events: none !important;
 }
-#tab-visao.active {
+#tab-visao.active, #tab-ez.active, #tab-metas.active {
   display: block !important;
   height: auto !important;
-  min-height: 0 !important;
-}
-#tab-ez.active, #tab-metas.active {
-  display: block !important;
-  height: auto !important;
-  min-height: 100vh !important;
   overflow: visible !important;
   position: static !important;
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;
 }
+#tab-ez.active, #tab-metas.active { min-height: 100vh !important; }
+#tab-visao.active { min-height: 0 !important; }
 /* Sem gap entre header e tabs em nenhum modo */
 .header { margin-bottom: 0 !important; padding-bottom: 0 !important; }
 .tabs-wrap { margin-top: 0 !important; }
