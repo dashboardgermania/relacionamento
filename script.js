@@ -509,8 +509,8 @@ function renderMetas() {
 
 /* ── HELPER CSAT ── */
 function calcCSAT(tickets) {
-  const SATISFEITOS    = ['totalmente satisfeito', 'satisfeito'];
-  const INSATISFEITOS  = ['insatisfeito', 'totalmente insatisfeito'];
+  const SATISFEITOS    = ['total. satisfeito', 'satisfeito'];
+  const INSATISFEITOS  = ['insatisfeito', 'total. insatisfeito'];
   const avaliados = tickets.filter(t => t.CSAT);
   const total     = avaliados.length;
   const sat  = avaliados.filter(t => SATISFEITOS.includes(t.CSAT.toLowerCase())).length;
@@ -844,9 +844,7 @@ function renderEZ(){
     if(resp&&d.Agente!==resp)return false;
     return true;
   });
-  // Debug CSAT
-  const _csatSample=data.filter(d=>d.CSAT).slice(0,3).map(d=>d.CSAT);
-  console.log('[CSAT] tickets:',data.length,'| com CSAT:',data.filter(d=>d.CSAT).length,'| exemplos:',_csatSample);
+
 
   const total=data.length;
   const tpiMed=data.reduce((s,d)=>s+(d.TPI_min||0),0)/Math.max(total,1);
@@ -938,11 +936,11 @@ function renderEZ(){
       ${(()=>{
         if(!csatEZ.total) return '<div class="ez-kpi-val" style="font-size:36px;margin-top:8px;">—</div>';
         const cats=[
-          {emoji:'😄',label:'Totalmente Satisfeito',cat:'totalmente satisfeito',color:'#1E7A42'},
+          {emoji:'😄',label:'Totalmente Satisfeito',cat:'total. satisfeito',color:'#1E7A42'},
           {emoji:'🙂',label:'Satisfeito',cat:'satisfeito',color:'#2E8B4A'},
           {emoji:'😐',label:'Neutro',cat:'neutro',color:'#966A00'},
           {emoji:'🙁',label:'Insatisfeito',cat:'insatisfeito',color:'#C25A1A'},
-          {emoji:'😠',label:'Tot. Insatisfeito',cat:'totalmente insatisfeito',color:'#B82418'}
+          {emoji:'😠',label:'Totalmente Insatisfeito',cat:'total. insatisfeito',color:'#B82418'}
         ];
         const rows=cats.map(({emoji,label,cat,color})=>{
           const n=data.filter(t=>t.CSAT&&t.CSAT.toLowerCase()===cat).length;
