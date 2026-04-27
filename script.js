@@ -945,16 +945,18 @@ function renderEZ(){
         const rows=cats.map(({emoji,label,cat,color})=>{
           const n=data.filter(t=>t.CSAT&&t.CSAT.toLowerCase()===cat).length;
           const pct=Math.round(n/csatEZ.total*100);
-          return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">'
-            +'<span style="font-size:12px;flex-shrink:0;width:16px;text-align:center;">'+emoji+'</span>'
-            +'<span style="font-family:Barlow,sans-serif;font-size:10px;color:var(--txt-faint);flex-shrink:0;width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+label+'</span>'
-            +'<div style="flex:1;height:4px;background:rgba(180,165,140,0.15);border-radius:2px;overflow:hidden;">'
-            +'<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:2px;"></div>'
+          return '<div style="margin-bottom:7px;">'
+            +'<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">'
+            +'<span style="font-size:13px;">'+emoji+'</span>'
+            +'<span style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;color:var(--txt-faint);flex:1;letter-spacing:0.3px;">'+label+'</span>'
+            +'<span style="font-family:Barlow,sans-serif;font-size:13px;font-weight:800;color:'+color+';">'+pct+'%</span>'
             +'</div>'
-            +'<span style="font-family:Barlow,sans-serif;font-size:11px;font-weight:700;color:'+color+';min-width:30px;text-align:right;">'+pct+'%</span>'
+            +'<div style="height:3px;background:rgba(180,165,140,0.12);border-radius:2px;overflow:hidden;">'
+            +'<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:2px;transition:width 0.8s ease;"></div>'
+            +'</div>'
             +'</div>';
         }).join('');
-        return '<div style="margin-top:10px;padding-bottom:4px;">'+rows+'</div>';
+        return '<div style="margin-top:8px;">'+rows+'</div>';
       })()}
     </div></div>
 
