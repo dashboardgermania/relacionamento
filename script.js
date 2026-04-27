@@ -931,7 +931,7 @@ function renderEZ(){
       ` : '<div class="ez-kpi-val" style="font-size:36px;margin-top:8px;">—</div>'}
     </div></div>
 
-    <div class="card line-l2" data-s="none"><div class="card-ab">
+    <div class="card line-l2" data-s="none"><div class="card-ab" style="height:auto;padding-bottom:12px;">
       <div class="c-header"><div class="c-title pill-l2">Distribuição de Avaliações</div><div class="c-sub">Resultado por categoria · ${csatEZ.total} avaliações</div></div>
       ${(()=>{
         if(!csatEZ.total) return '<div class="ez-kpi-val" style="font-size:36px;margin-top:8px;">—</div>';
