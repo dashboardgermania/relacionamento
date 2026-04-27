@@ -1116,7 +1116,7 @@ function renderEZ(){
             <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
               <span style="font-family:Barlow,sans-serif;font-size:10px;color:var(--txt-faint);letter-spacing:0.8px;">Ordenar</span>
               <button onclick="ez12Sort('cron',this)" class="ez12-btn ez12-active" style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid rgba(180,165,140,0.3);background:rgba(180,165,140,0.1);color:var(--txt-faint);cursor:pointer;letter-spacing:0.5px;">Horário</button>
-              <button onclick="ez12Sort('perda',this)" class="ez12-btn" style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid rgba(180,165,140,0.3);background:rgba(180,165,140,0.1);color:var(--txt-faint);cursor:pointer;letter-spacing:0.5px;">Maior Perda</button>
+              <button onclick="ez12Sort('perda',this)" class="ez12-btn" style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid rgba(180,165,140,0.3);background:rgba(180,165,140,0.1);color:var(--txt-faint);cursor:pointer;letter-spacing:0.5px;">Sem Classificação</button>
               <button onclick="ez12Sort('tpi',this)" class="ez12-btn" style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid rgba(180,165,140,0.3);background:rgba(180,165,140,0.1);color:var(--txt-faint);cursor:pointer;letter-spacing:0.5px;">Maior TPI</button>
             </div>
           </div>
