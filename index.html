@@ -27,8 +27,13 @@
 :root[data-theme="dark"] .page-wrap {
   background: var(--bg);
   min-height: 0 !important;
+  padding-top: 0 !important;
   padding-bottom: 0 !important;
+  margin-top: 0 !important;
 }
+/* Eliminar qualquer gap entre header, tabs e filtros em todos os modos */
+.header { display: block; }
+.tabs-wrap, .filters-wrap { display: block; }
 :root[data-theme="dark"] .card {
   background: var(--card-bg) !important;
   border-color: var(--card-bd) !important;
