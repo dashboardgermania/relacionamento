@@ -899,7 +899,6 @@ let ezRendered=false;
 function renderEZ(){
   if(ezRendered)return;
   ezRendered=true;
-  try {
   const mes  = parseInt(document.getElementById('f-mes')?.value) || (new Date().getMonth()+1);
 
   const sem  = parseInt(document.getElementById('f-sem')?.value) || 0;
@@ -1070,7 +1069,7 @@ function renderEZ(){
     const maxPerda = Math.max(...horas.map(h => horaBuckets[h].semClass / horaBuckets[h].total * 100), 1);
     const maxTPI   = Math.max(...horas.map(h => horaBuckets[h].tpiCount ? horaBuckets[h].tpiSum/horaBuckets[h].tpiCount : 0), 1);
 
-    function fmtH(min){ min=Math.round(min); return min<60?min+'min':Math.floor(min/60)+'h'+(min%60?String(min%60).padStart(2,'0'):''); }
+    function fmtH(m){ const min=Math.round(m); return min<60?min+'min':Math.floor(min/60)+'h'+(min%60?String(min%60).padStart(2,'0'):''); }
 
     const barsPerda = horas.map(h=>{
       const b = horaBuckets[h];
@@ -1142,7 +1141,6 @@ function renderEZ(){
   }
 
   document.getElementById('ez-main').innerHTML=html;
-  } catch(e) { console.error('[renderEZ ERROR]', e); document.getElementById('ez-main').innerHTML='<div style="padding:32px;color:#B82418;font-family:Barlow,sans-serif;">Erro ao renderizar: '+e.message+'</div>'; return; }
   // Tooltip para colunas CSAT na tabela — estilo sp-tip
   const ezMain = document.getElementById('ez-main');
   let csatTip = document.querySelector('.sp-tip[data-id="ez-csat"]');
