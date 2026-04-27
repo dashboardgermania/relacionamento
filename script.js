@@ -1015,8 +1015,9 @@ function renderEZ(){
                 const agCSAT = calcCSAT(data.filter(t=>t.Agente===p.nome));
                 const csatColor = agCSAT.pctSat>=70?'#1E7A42':agCSAT.pctSat>=50?'#966A00':'#B82418';
                 const csatStr = agCSAT.total > 0
-                  ? '<span style="color:'+csatColor+';">'+agCSAT.pctSat+'% sat.</span> <span style="font-size:10px;color:var(--txt-faint);">('+agCSAT.total+')</span>'
-                  : '<span style="color:var(--txt-faint);">—</span>';
+                  ? '<span title="'+agCSAT.pctSat+'% satisfeitos · '+agCSAT.pctInsat+'% insatisfeitos · '+agCSAT.total+' aval." style="cursor:help;color:'+csatColor+';font-weight:700;">'+agCSAT.pctSat+'% 😊</span>'
+                    +' <span style="font-size:10px;color:var(--txt-faint);">('+agCSAT.total+')</span>'
+                  : '<span style="color:var(--txt-faint);" title="Sem avaliações no período">—</span>';
                 return '<tr>'
                   +'<td class="agent">'+p.nome+'</td>'
                   +'<td class="num">'+p.tickets+'</td>'
