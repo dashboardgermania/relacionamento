@@ -1105,34 +1105,36 @@ function renderEZ(){
       return perda>=30 || tpi>=45;
     }).map(h=>{
       const b = horaBuckets[h];
-      const perda = (b.semClass/b.total*100).toFixed(0);
-      const tpi   = b.tpiCount?fmtH(b.tpiSum/b.tpiCount):'—';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(180,165,140,0.10);">'
-        +'<span style="font-family:Barlow,sans-serif;font-size:13px;font-weight:700;color:var(--txt);">'+HORA_LABELS[h]+'</span>'
-        +'<span style="font-family:Barlow,sans-serif;font-size:11px;color:#B82418;">'+perda+'% sem class.</span>'
-        +'<span style="font-family:Barlow,sans-serif;font-size:11px;color:#966A00;">TPI: '+tpi+'</span>'
-        +'<span style="font-family:Barlow,sans-serif;font-size:10px;color:var(--txt-faint);">'+b.total+' tickets</span>'
+      const perdaPct = (b.semClass/b.total*100).toFixed(0);
+      const tpiVal   = b.tpiCount?b.tpiSum/b.tpiCount:0;
+      const tpiStr   = b.tpiCount?fmtH(tpiVal):'—';
+      const cP = perdaPct>=50?'#B82418':perdaPct>=30?'#966A00':'#2E8B4A';
+      const cT = tpiVal>=120?'#B82418':tpiVal>=45?'#966A00':'#2E8B4A';
+      return '<div style="background:rgba(180,165,140,0.06);border-radius:6px;padding:12px 14px;">'
+        +'<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;">'
+        +'<span style="font-family:Barlow,sans-serif;font-size:24px;font-weight:800;color:var(--txt);">'+HORA_LABELS[h]+'</span>'
+        +'<span style="font-family:Barlow,sans-serif;font-size:11px;color:var(--txt-faint);">'+b.total+' tickets</span>'
+        +'</div>'
+        +'<div style="display:flex;gap:20px;">'
+        +'<div><div style="font-family:Barlow,sans-serif;font-size:10px;letter-spacing:0.8px;color:var(--txt-faint);margin-bottom:2px;">SEM CLASS.</div>'
+        +'<div style="font-family:Barlow,sans-serif;font-size:22px;font-weight:700;color:'+cP+';">'+perdaPct+'%</div></div>'
+        +'<div><div style="font-family:Barlow,sans-serif;font-size:10px;letter-spacing:0.8px;color:var(--txt-faint);margin-bottom:2px;">TPI MÉDIO</div>'
+        +'<div style="font-family:Barlow,sans-serif;font-size:22px;font-weight:700;color:'+cT+';">'+tpiStr+'</div></div>'
+        +'</div>'
         +'</div>';
-    }).join('') || '<div style="font-family:Barlow,sans-serif;font-size:12px;color:var(--txt-faint);margin-top:8px;">Nenhuma janela crítica no período.</div>';
+    }).join('');
 
     const card12HTML = `
-    <div class="row">
+    <div class="row" style="grid-template-columns:1fr;">
       <div class="card line-l3" data-s="none" style="height:auto;">
-        <div class="card-ab" style="height:auto;padding-bottom:16px;">
-          <div class="c-header"><div class="c-title pill-l3">Taxa de Perda por Hora</div><div class="c-sub">% de tickets sem classificação · por horário</div></div>
-          <div style="margin-top:10px;">${barsPerda||'<span style="font-size:12px;color:var(--txt-faint);">Sem dados suficientes</span>'}</div>
-        </div>
-      </div>
-      <div class="card line-l3" data-s="none" style="height:auto;">
-        <div class="card-ab" style="height:auto;padding-bottom:16px;">
-          <div class="c-header"><div class="c-title pill-l3">TPI Médio por Hora</div><div class="c-sub">Velocidade de resposta inicial · por horário</div></div>
-          <div style="margin-top:10px;">${barsTPI||'<span style="font-size:12px;color:var(--txt-faint);">Sem dados suficientes</span>'}</div>
-        </div>
-      </div>
-      <div class="card line-l3" data-s="none" style="height:auto;">
-        <div class="card-ab" style="height:auto;padding-bottom:16px;">
-          <div class="c-header"><div class="c-title pill-l3">Janelas Críticas</div><div class="c-sub">Horas com alta perda ou resposta lenta</div></div>
-          <div style="margin-top:10px;">${criticas}</div>
+        <div class="card-ab" style="height:auto;padding-bottom:20px;">
+          <div class="c-header">
+            <div class="c-title pill-l3">Janelas Críticas de Atendimento</div>
+            <div class="c-sub">Horários com alta taxa de perda ou resposta lenta · TPI inclui tempo fora do horário comercial</div>
+          </div>
+          <div style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;">
+            ${criticas || '<div style="font-family:Barlow,sans-serif;font-size:13px;color:var(--txt-faint);">Nenhuma janela crítica no período.</div>'}
+          </div>
         </div>
       </div>
     </div>`;
