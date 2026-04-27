@@ -844,6 +844,9 @@ function renderEZ(){
     if(resp&&d.Agente!==resp)return false;
     return true;
   });
+  // Debug CSAT
+  const _csatSample=data.filter(d=>d.CSAT).slice(0,3).map(d=>d.CSAT);
+  console.log('[CSAT] tickets:',data.length,'| com CSAT:',data.filter(d=>d.CSAT).length,'| exemplos:',_csatSample);
 
   const total=data.length;
   const tpiMed=data.reduce((s,d)=>s+(d.TPI_min||0),0)/Math.max(total,1);
