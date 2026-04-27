@@ -1002,23 +1002,30 @@ function renderEZ(){
   <div class="row" style="grid-template-columns:1fr;">
     <div class="card line-l3" data-s="none" style="height:auto;">
       <div class="card-ab" style="height:auto;padding-bottom:16px;">
-        <div class="c-header"><div class="c-title pill-l3">Performance por Agente</div><div class="c-sub">Consolidado do período filtrado</div></div>
+        <div class="c-header"><div class="c-title pill-l3">Performance por Agente</div><div class="c-sub">Consolidado do período · ordenado por volume</div></div>
         <div style="margin-top:12px;overflow-x:auto;">
           <table class="ez-table">
             <thead><tr>
               <th>Agente</th><th>Tickets</th><th>Finalizados</th><th>% Finalizado</th>
-              <th>TPI Médio</th><th>TMA Médio</th><th>Classificação Mais Frequente</th>
+              <th>TPI Médio</th><th>TMA Médio</th><th>CSAT</th>
             </tr></thead>
             <tbody>
-              ${perf.map(p=>`<tr>
-                <td class="agent">${p.nome}</td>
-                <td class="num">${p.tickets}</td>
-                <td class="num">${p.fin}</td>
-                <td>${p.tickets?Math.round((p.fin/p.tickets)*100)+'%':'—'}</td>
-                <td>${p.tpiMed||fmtMin(p.tpiMin||0)}</td>
-                <td>${p.tmaMed||fmtMin(p.tmaMin||0)}</td>
-                <td><span class="ez-badge">${p.topClass}</span></td>
-              </tr>`).join('')}
+              ${perf.sort((a,b)=>b.tickets-a.tickets).map(p=>{
+                const agCSAT = calcCSAT(data.filter(t=>t.Agente===p.nome));
+                const csatColor = agCSAT.pctSat>=70?'#1E7A42':agCSAT.pctSat>=50?'#966A00':'#B82418';
+                const csatStr = agCSAT.total > 0
+                  ? '<span style="color:'+csatColor+';">'+agCSAT.pctSat+'% sat.</span> <span style="font-size:10px;color:var(--txt-faint);">('+agCSAT.total+')</span>'
+                  : '<span style="color:var(--txt-faint);">—</span>';
+                return '<tr>'
+                  +'<td class="agent">'+p.nome+'</td>'
+                  +'<td class="num">'+p.tickets+'</td>'
+                  +'<td class="num">'+p.fin+'</td>'
+                  +'<td>'+(p.tickets?Math.round((p.fin/p.tickets)*100)+'%':'—')+'</td>'
+                  +'<td>'+fmtMin(p.tpiMin||0)+'</td>'
+                  +'<td>'+fmtMin(p.tmaMin||0)+'</td>'
+                  +'<td>'+csatStr+'</td>'
+                  +'</tr>';
+              }).join('')}
             </tbody>
           </table>
         </div>
