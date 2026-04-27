@@ -818,6 +818,76 @@ function go(){
   const triNomes = {1:'Q1 · Jan–Mar', 2:'Q2 · Abr–Jun', 3:'Q3 · Jul–Set', 4:'Q4 · Out–Dez'};
   if(resumoEl) resumoEl.textContent = mesRaw===0 ? 'Resumo Anual' : triSel ? triNomes[triSel] : sem ? MESES[mes-1]+' · S'+sem : 'Resumo '+MESES[mes-1];
 
+  // CSAT na aba 1 — renderizar nos cards da ROW 4
+  {
+    const csatDef = mesRaw === 0
+      ? {de:`${new Date().getFullYear()}-01-01`, ate:`${new Date().getFullYear()}-12-31`}
+      : getDateRangeForFilter(mes, sem);
+    const csatMF = tri && TRI_MESES[tri] ? TRI_MESES[tri] : null;
+    const csatTix = EZ_TICKETS.filter(d => {
+      if (mesRaw === 0) return true;
+      if (csatMF) return csatMF.includes(parseInt(d.DataStr.slice(5,7)));
+      return d.DataStr >= csatDef.de && d.DataStr <= csatDef.ate;
+    });
+    const csat = calcCSAT(csatTix);
+
+    const elTot  = document.getElementById('v-csat-tot');
+    const elSub  = document.getElementById('v-csat-sub');
+    const elDist = document.getElementById('csat-dist-body');
+    const elDSub = document.getElementById('csat-dist-sub');
+    const elScr  = document.getElementById('csat-score-body');
+
+    if (csat.total > 0) {
+      if (elTot)  elTot.textContent  = csat.total;
+      if (elSub)  elSub.textContent  = csat.total + ' ticket' + (csat.total!==1?'s':'') + ' avaliados';
+      if (elDSub) elDSub.textContent = 'Resultado por categoria · ' + csat.total + ' avaliações';
+
+      // Distribuição
+      if (elDist) {
+        const cats=[
+          {emoji:'😄',label:'Totalmente Satisfeito',cat:'total. satisfeito',color:'#1E7A42'},
+          {emoji:'🙂',label:'Satisfeito',cat:'satisfeito',color:'#2E8B4A'},
+          {emoji:'😐',label:'Neutro',cat:'neutro',color:'#966A00'},
+          {emoji:'🙁',label:'Insatisfeito',cat:'insatisfeito',color:'#C25A1A'},
+          {emoji:'😠',label:'Totalmente Insatisfeito',cat:'total. insatisfeito',color:'#B82418'}
+        ];
+        elDist.innerHTML = '<div style="margin-top:8px;">'
+          + cats.map(({emoji,label,cat,color})=>{
+            const n = csatTix.filter(t=>t.CSAT&&t.CSAT.toLowerCase()===cat).length;
+            const pct = Math.round(n/csat.total*100);
+            return '<div style="margin-bottom:7px;">'
+              +'<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">'
+              +'<span style="font-size:13px;">'+emoji+'</span>'
+              +'<span style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;color:var(--txt-faint);flex:1;">'+label+'</span>'
+              +'<span style="font-family:Barlow,sans-serif;font-size:13px;font-weight:800;color:'+color+';">'+pct+'%</span>'
+              +'</div>'
+              +'<div style="height:3px;background:rgba(180,165,140,0.12);border-radius:2px;overflow:hidden;">'
+              +'<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:2px;transition:width 0.8s ease;"></div>'
+              +'</div></div>';
+          }).join('')
+          + '</div>';
+      }
+
+      // Score
+      if (elScr) {
+        const score = csat.pctSat - csat.pctInsat;
+        const sc = score>=50?'#1E7A42':score>=20?'#2E8B4A':score>=0?'#966A00':'#B82418';
+        const sl = score>=50?'Excelente':score>=20?'Bom':score>=0?'Atenção':'Crítico';
+        elScr.innerHTML = '<div class="ez-kpi-val" style="font-size:56px;font-weight:700;color:'+sc+';margin-top:4px;">'+(score>0?'+':'')+score+'</div>'
+          +'<div style="font-family:Barlow,sans-serif;font-size:13px;font-weight:600;color:'+sc+';letter-spacing:1px;">'+sl+'</div>'
+          +'<div style="font-family:Barlow,sans-serif;font-size:12px;color:var(--txt-faint);margin-top:8px;">'
+          +'<span style="color:#1E7A42;">'+csat.pctSat+'% satisfeitos</span>'
+          +' · <span style="color:#B82418;">'+csat.pctInsat+'% insatisfeitos</span>'
+          +'</div>';
+      }
+    } else {
+      if (elTot) elTot.textContent = '—';
+      if (elSub) elSub.textContent = 'Sem avaliações no período';
+      if (elDist) elDist.innerHTML = '';
+      if (elScr)  elScr.innerHTML  = '<div class="ez-kpi-val" style="font-size:56px;margin-top:4px;">—</div>';
+    }
+  }
+
   // Atualiza abas ativas ao filtrar
   ezRendered=false;
   if(document.getElementById('tab-ez')?.classList.contains('active'))renderEZ();
@@ -922,60 +992,7 @@ function renderEZ(){
     </div>
   </div>
 
-  <div class="row">
-    <div class="card line-l2" data-s="none"><div class="card-ab">
-      <div class="c-header"><div class="c-title pill-l2">Total de Avaliações</div><div class="c-sub">Pesquisa de satisfação CSAT · período selecionado</div></div>
-      ${csatEZ.total > 0 ? `
-        <div class="ez-kpi-val" style="font-size:48px;margin-top:4px;">${csatEZ.total}</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--txt-faint);margin-top:4px;">${csatEZ.total} ticket${csatEZ.total!==1?'s':''} avaliados</div>
-      ` : '<div class="ez-kpi-val" style="font-size:36px;margin-top:8px;">—</div>'}
-    </div></div>
 
-    <div class="card line-l2" data-s="none"><div class="card-ab" style="height:auto;padding-bottom:12px;">
-      <div class="c-header"><div class="c-title pill-l2">Distribuição de Avaliações</div><div class="c-sub">Resultado por categoria · ${csatEZ.total} avaliações</div></div>
-      ${(()=>{
-        if(!csatEZ.total) return '<div class="ez-kpi-val" style="font-size:36px;margin-top:8px;">—</div>';
-        const cats=[
-          {emoji:'😄',label:'Totalmente Satisfeito',cat:'total. satisfeito',color:'#1E7A42'},
-          {emoji:'🙂',label:'Satisfeito',cat:'satisfeito',color:'#2E8B4A'},
-          {emoji:'😐',label:'Neutro',cat:'neutro',color:'#966A00'},
-          {emoji:'🙁',label:'Insatisfeito',cat:'insatisfeito',color:'#C25A1A'},
-          {emoji:'😠',label:'Totalmente Insatisfeito',cat:'total. insatisfeito',color:'#B82418'}
-        ];
-        const rows=cats.map(({emoji,label,cat,color})=>{
-          const n=data.filter(t=>t.CSAT&&t.CSAT.toLowerCase()===cat).length;
-          const pct=Math.round(n/csatEZ.total*100);
-          return '<div style="margin-bottom:7px;">'
-            +'<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">'
-            +'<span style="font-size:13px;">'+emoji+'</span>'
-            +'<span style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;color:var(--txt-faint);flex:1;letter-spacing:0.3px;">'+label+'</span>'
-            +'<span style="font-family:Barlow,sans-serif;font-size:13px;font-weight:800;color:'+color+';">'+pct+'%</span>'
-            +'</div>'
-            +'<div style="height:3px;background:rgba(180,165,140,0.12);border-radius:2px;overflow:hidden;">'
-            +'<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:2px;transition:width 0.8s ease;"></div>'
-            +'</div>'
-            +'</div>';
-        }).join('');
-        return '<div style="margin-top:8px;">'+rows+'</div>';
-      })()}
-    </div></div>
-
-    <div class="card line-l2" data-s="none"><div class="card-ab">
-      <div class="c-header"><div class="c-title pill-l2">Score de Satisfação</div><div class="c-sub">% satisfeitos − % insatisfeitos</div></div>
-      ${(()=>{
-        if(!csatEZ.total) return '<div class="ez-kpi-val" style="font-size:36px;margin-top:8px;">—</div>';
-        const score=csatEZ.pctSat-csatEZ.pctInsat;
-        const sc=score>=50?'#1E7A42':score>=20?'#2E8B4A':score>=0?'#966A00':'#B82418';
-        const sl=score>=50?'Excelente':score>=20?'Bom':score>=0?'Atenção':'Crítico';
-        return '<div class="ez-kpi-val" style="font-size:56px;font-weight:700;color:'+sc+';margin-top:4px;">'+(score>0?'+':'')+score+'</div>'
-          +'<div style="font-family:Barlow,sans-serif;font-size:13px;font-weight:600;color:'+sc+';letter-spacing:1px;">'+sl+'</div>'
-          +'<div style="font-family:Barlow,sans-serif;font-size:12px;color:var(--txt-faint);margin-top:8px;">'
-          +'<span style="color:#1E7A42;">'+csatEZ.pctSat+'% satisfeitos</span>'
-          +' · <span style="color:#B82418;">'+csatEZ.pctInsat+'% insatisfeitos</span>'
-          +'</div>';
-      })()}
-    </div></div>
-  </div>
 
   <div class="row" style="grid-template-columns:1fr 1fr;">
     <div class="card line-l2" data-s="none" style="height:auto;">
@@ -1034,6 +1051,94 @@ function renderEZ(){
       </div>
     </div>
   </div>`;
+
+  // ── Card 1.2: Velocidade × Perda no Topo ──
+  {
+    const HORA_LABELS = ['00h','01h','02h','03h','04h','05h','06h','07h','08h','09h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h','23h'];
+    const horaBuckets = {};
+    data.forEach(d => {
+      const h = d.Hora;
+      if(!horaBuckets[h]) horaBuckets[h] = {total:0, semClass:0, tpiSum:0, tpiCount:0};
+      horaBuckets[h].total++;
+      if(!d.Classificacao || d.Classificacao==='Sem Classificação') horaBuckets[h].semClass++;
+      if(d.TPI_min > 0){ horaBuckets[h].tpiSum += d.TPI_min; horaBuckets[h].tpiCount++; }
+    });
+
+    // Horas com pelo menos 3 tickets
+    const horas = Object.keys(horaBuckets).map(Number).filter(h => horaBuckets[h].total >= 3).sort((a,b)=>a-b);
+    const maxPerda = Math.max(...horas.map(h => horaBuckets[h].semClass / horaBuckets[h].total * 100), 1);
+    const maxTPI   = Math.max(...horas.map(h => horaBuckets[h].tpiCount ? horaBuckets[h].tpiSum/horaBuckets[h].tpiCount : 0), 1);
+
+    function fmtH(min){ min=Math.round(min); return min<60?min+'min':Math.floor(min/60)+'h'+(min%60?String(min%60).padStart(2,'0'):''); }
+
+    const barsPerda = horas.map(h=>{
+      const b = horaBuckets[h];
+      const pct = b.semClass/b.total*100;
+      const col = pct>=40?'#B82418':pct>=20?'#966A00':'#2E8B4A';
+      return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
+        +'<span style="font-family:Barlow,sans-serif;font-size:10px;color:var(--txt-faint);width:26px;text-align:right;">'+HORA_LABELS[h]+'</span>'
+        +'<div style="flex:1;height:6px;background:rgba(180,165,140,0.12);border-radius:3px;overflow:hidden;">'
+        +'<div style="height:100%;width:'+Math.min(pct/maxPerda*100,100).toFixed(1)+'%;background:'+col+';border-radius:3px;"></div>'
+        +'</div>'
+        +'<span style="font-family:Barlow,sans-serif;font-size:10px;font-weight:700;color:'+col+';min-width:32px;">'+pct.toFixed(0)+'%</span>'
+        +'</div>';
+    }).join('');
+
+    const barsTPI = horas.map(h=>{
+      const b = horaBuckets[h];
+      const tpi = b.tpiCount ? b.tpiSum/b.tpiCount : 0;
+      const col = tpi>=60?'#B82418':tpi>=20?'#966A00':'#2E8B4A';
+      return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
+        +'<span style="font-family:Barlow,sans-serif;font-size:10px;color:var(--txt-faint);width:26px;text-align:right;">'+HORA_LABELS[h]+'</span>'
+        +'<div style="flex:1;height:6px;background:rgba(180,165,140,0.12);border-radius:3px;overflow:hidden;">'
+        +'<div style="height:100%;width:'+Math.min(tpi/maxTPI*100,100).toFixed(1)+'%;background:'+col+';border-radius:3px;"></div>'
+        +'</div>'
+        +'<span style="font-family:Barlow,sans-serif;font-size:10px;font-weight:700;color:'+col+';min-width:40px;">'+fmtH(tpi)+'</span>'
+        +'</div>';
+    }).join('');
+
+    // Janelas críticas: alto volume + alta perda + alto TPI
+    const criticas = horas.filter(h=>{
+      const b = horaBuckets[h];
+      const perda = b.semClass/b.total*100;
+      const tpi   = b.tpiCount?b.tpiSum/b.tpiCount:0;
+      return perda>=30 || tpi>=45;
+    }).map(h=>{
+      const b = horaBuckets[h];
+      const perda = (b.semClass/b.total*100).toFixed(0);
+      const tpi   = b.tpiCount?fmtH(b.tpiSum/b.tpiCount):'—';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(180,165,140,0.10);">'
+        +'<span style="font-family:Barlow,sans-serif;font-size:13px;font-weight:700;color:var(--txt);">'+HORA_LABELS[h]+'</span>'
+        +'<span style="font-family:Barlow,sans-serif;font-size:11px;color:#B82418;">'+perda+'% sem class.</span>'
+        +'<span style="font-family:Barlow,sans-serif;font-size:11px;color:#966A00;">TPI: '+tpi+'</span>'
+        +'<span style="font-family:Barlow,sans-serif;font-size:10px;color:var(--txt-faint);">'+b.total+' tickets</span>'
+        +'</div>';
+    }).join('') || '<div style="font-family:Barlow,sans-serif;font-size:12px;color:var(--txt-faint);margin-top:8px;">Nenhuma janela crítica no período.</div>';
+
+    const card12HTML = `
+    <div class="row">
+      <div class="card line-l3" data-s="none" style="height:auto;">
+        <div class="card-ab" style="height:auto;padding-bottom:16px;">
+          <div class="c-header"><div class="c-title pill-l3">Taxa de Perda por Hora</div><div class="c-sub">% de tickets sem classificação · por horário</div></div>
+          <div style="margin-top:10px;">${barsPerda||'<span style="font-size:12px;color:var(--txt-faint);">Sem dados suficientes</span>'}</div>
+        </div>
+      </div>
+      <div class="card line-l3" data-s="none" style="height:auto;">
+        <div class="card-ab" style="height:auto;padding-bottom:16px;">
+          <div class="c-header"><div class="c-title pill-l3">TPI Médio por Hora</div><div class="c-sub">Velocidade de resposta inicial · por horário</div></div>
+          <div style="margin-top:10px;">${barsTPI||'<span style="font-size:12px;color:var(--txt-faint);">Sem dados suficientes</span>'}</div>
+        </div>
+      </div>
+      <div class="card line-l3" data-s="none" style="height:auto;">
+        <div class="card-ab" style="height:auto;padding-bottom:16px;">
+          <div class="c-header"><div class="c-title pill-l3">Janelas Críticas</div><div class="c-sub">Horas com alta perda ou resposta lenta</div></div>
+          <div style="margin-top:10px;">${criticas}</div>
+        </div>
+      </div>
+    </div>`;
+
+    html += card12HTML;
+  }
 
   document.getElementById('ez-main').innerHTML=html;
   // Tooltip para colunas CSAT na tabela — estilo sp-tip
