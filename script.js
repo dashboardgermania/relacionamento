@@ -1052,97 +1052,104 @@ function renderEZ(){
     </div>
   </div>`;
 
-  // ── Card 1.2: Velocidade × Perda no Topo ──
+  // ── Card 1.2: Janelas Críticas — TPI só horário comercial (08h-18h) ──
   {
     const HORA_LABELS = ['00h','01h','02h','03h','04h','05h','06h','07h','08h','09h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h','23h'];
+    const HC_START = 8, HC_END = 18; // Horário comercial
+
     const horaBuckets = {};
     data.forEach(d => {
       const h = d.Hora;
       if(!horaBuckets[h]) horaBuckets[h] = {total:0, semClass:0, tpiSum:0, tpiCount:0};
       horaBuckets[h].total++;
       if(!d.Classificacao || d.Classificacao==='Sem Classificação') horaBuckets[h].semClass++;
-      if(d.TPI_min > 0){ horaBuckets[h].tpiSum += d.TPI_min; horaBuckets[h].tpiCount++; }
+      // TPI só conta tickets que chegaram no horário comercial
+      if(d.TPI_min > 0 && h >= HC_START && h < HC_END){
+        horaBuckets[h].tpiSum += d.TPI_min;
+        horaBuckets[h].tpiCount++;
+      }
     });
 
-    // Horas com pelo menos 3 tickets
     const horas = Object.keys(horaBuckets).map(Number).filter(h => horaBuckets[h].total >= 3).sort((a,b)=>a-b);
-    const maxPerda = Math.max(...horas.map(h => horaBuckets[h].semClass / horaBuckets[h].total * 100), 1);
-    const maxTPI   = Math.max(...horas.map(h => horaBuckets[h].tpiCount ? horaBuckets[h].tpiSum/horaBuckets[h].tpiCount : 0), 1);
-
     function fmtH(m){ const min=Math.round(m); return min<60?min+'min':Math.floor(min/60)+'h'+(min%60?String(min%60).padStart(2,'0'):''); }
 
-    const barsPerda = horas.map(h=>{
-      const b = horaBuckets[h];
-      const pct = b.semClass/b.total*100;
-      const col = pct>=40?'#B82418':pct>=20?'#966A00':'#2E8B4A';
-      return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
-        +'<span style="font-family:Barlow,sans-serif;font-size:10px;color:var(--txt-faint);width:26px;text-align:right;">'+HORA_LABELS[h]+'</span>'
-        +'<div style="flex:1;height:6px;background:rgba(180,165,140,0.12);border-radius:3px;overflow:hidden;">'
-        +'<div style="height:100%;width:'+Math.min(pct/maxPerda*100,100).toFixed(1)+'%;background:'+col+';border-radius:3px;"></div>'
-        +'</div>'
-        +'<span style="font-family:Barlow,sans-serif;font-size:10px;font-weight:700;color:'+col+';min-width:32px;">'+pct.toFixed(0)+'%</span>'
-        +'</div>';
-    }).join('');
+    // Gerar cards de horário com ordenação dinâmica
+    function buildCards(horasOrdenadas) {
+      return horasOrdenadas.map(h=>{
+        const b = horaBuckets[h];
+        const perdaPct = b.total ? (b.semClass/b.total*100) : 0;
+        const tpiVal   = b.tpiCount ? b.tpiSum/b.tpiCount : null;
+        const cP = perdaPct>=50?'#B82418':perdaPct>=30?'#966A00':'#2E8B4A';
+        const cT = tpiVal===null?'#9BA8B0':tpiVal>=60?'#B82418':tpiVal>=20?'#966A00':'#2E8B4A';
+        const tpiStr = tpiVal!==null ? fmtH(tpiVal) : '—';
+        const tpiNote = (h < HC_START || h >= HC_END) ? ' *' : '';
+        return '<div style="background:rgba(180,165,140,0.06);border-radius:6px;padding:10px 12px;">'
+          +'<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">'
+          +'<span style="font-family:Barlow,sans-serif;font-size:22px;font-weight:800;color:var(--txt);">'+HORA_LABELS[h]+'</span>'
+          +'<span style="font-family:Barlow,sans-serif;font-size:12px;font-weight:600;color:var(--txt-faint);">'+b.total+' tickets</span>'
+          +'</div>'
+          +'<div style="display:flex;gap:16px;">'
+          +'<div><div style="font-family:Barlow,sans-serif;font-size:9px;letter-spacing:0.8px;color:var(--txt-faint);margin-bottom:2px;">SEM CLASS.</div>'
+          +'<div style="font-family:Barlow,sans-serif;font-size:20px;font-weight:700;color:'+cP+';">'+perdaPct.toFixed(0)+'%</div></div>'
+          +'<div><div style="font-family:Barlow,sans-serif;font-size:9px;letter-spacing:0.8px;color:var(--txt-faint);margin-bottom:2px;">TPI MÉDIO'+tpiNote+'</div>'
+          +'<div style="font-family:Barlow,sans-serif;font-size:20px;font-weight:700;color:'+cT+';">'+tpiStr+'</div></div>'
+          +'</div>'
+          +'</div>';
+      }).join('');
+    }
 
-    const barsTPI = horas.map(h=>{
-      const b = horaBuckets[h];
-      const tpi = b.tpiCount ? b.tpiSum/b.tpiCount : 0;
-      const col = tpi>=60?'#B82418':tpi>=20?'#966A00':'#2E8B4A';
-      return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
-        +'<span style="font-family:Barlow,sans-serif;font-size:10px;color:var(--txt-faint);width:26px;text-align:right;">'+HORA_LABELS[h]+'</span>'
-        +'<div style="flex:1;height:6px;background:rgba(180,165,140,0.12);border-radius:3px;overflow:hidden;">'
-        +'<div style="height:100%;width:'+Math.min(tpi/maxTPI*100,100).toFixed(1)+'%;background:'+col+';border-radius:3px;"></div>'
-        +'</div>'
-        +'<span style="font-family:Barlow,sans-serif;font-size:10px;font-weight:700;color:'+col+';min-width:40px;">'+fmtH(tpi)+'</span>'
-        +'</div>';
-    }).join('');
-
-    // Janelas críticas: alto volume + alta perda + alto TPI
-    const criticas = horas.filter(h=>{
-      const b = horaBuckets[h];
-      const perda = b.semClass/b.total*100;
-      const tpi   = b.tpiCount?b.tpiSum/b.tpiCount:0;
-      return perda>=30 || tpi>=45;
-    }).map(h=>{
-      const b = horaBuckets[h];
-      const perdaPct = (b.semClass/b.total*100).toFixed(0);
-      const tpiVal   = b.tpiCount?b.tpiSum/b.tpiCount:0;
-      const tpiStr   = b.tpiCount?fmtH(tpiVal):'—';
-      const cP = perdaPct>=50?'#B82418':perdaPct>=30?'#966A00':'#2E8B4A';
-      const cT = tpiVal>=120?'#B82418':tpiVal>=45?'#966A00':'#2E8B4A';
-      return '<div style="background:rgba(180,165,140,0.06);border-radius:6px;padding:12px 14px;">'
-        +'<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;">'
-        +'<span style="font-family:Barlow,sans-serif;font-size:24px;font-weight:800;color:var(--txt);">'+HORA_LABELS[h]+'</span>'
-        +'<span style="font-family:Barlow,sans-serif;font-size:11px;color:var(--txt-faint);">'+b.total+' tickets</span>'
-        +'</div>'
-        +'<div style="display:flex;gap:20px;">'
-        +'<div><div style="font-family:Barlow,sans-serif;font-size:10px;letter-spacing:0.8px;color:var(--txt-faint);margin-bottom:2px;">SEM CLASS.</div>'
-        +'<div style="font-family:Barlow,sans-serif;font-size:22px;font-weight:700;color:'+cP+';">'+perdaPct+'%</div></div>'
-        +'<div><div style="font-family:Barlow,sans-serif;font-size:10px;letter-spacing:0.8px;color:var(--txt-faint);margin-bottom:2px;">TPI MÉDIO</div>'
-        +'<div style="font-family:Barlow,sans-serif;font-size:22px;font-weight:700;color:'+cT+';">'+tpiStr+'</div></div>'
-        +'</div>'
-        +'</div>';
-    }).join('');
+    const horasCron    = [...horas];
+    const horasPerda   = [...horas].sort((a,b)=>(horaBuckets[b].semClass/horaBuckets[b].total)-(horaBuckets[a].semClass/horaBuckets[a].total));
+    const horasTPI     = [...horas].filter(h=>horaBuckets[h].tpiCount>0).sort((a,b)=>(horaBuckets[b].tpiSum/horaBuckets[b].tpiCount)-(horaBuckets[a].tpiSum/horaBuckets[a].tpiCount));
 
     const card12HTML = `
     <div class="row" style="grid-template-columns:1fr;">
       <div class="card line-l3" data-s="none" style="height:auto;">
         <div class="card-ab" style="height:auto;padding-bottom:20px;">
-          <div class="c-header">
-            <div class="c-title pill-l3">Janelas Críticas de Atendimento</div>
-            <div class="c-sub">Horários com alta taxa de perda ou resposta lenta · TPI inclui tempo fora do horário comercial</div>
+          <div class="c-header" style="flex-wrap:wrap;gap:8px;">
+            <div>
+              <div class="c-title pill-l3">Janelas Críticas de Atendimento</div>
+              <div class="c-sub">TPI calculado apenas para tickets no horário comercial (08h–18h) · * = sem dados de TPI</div>
+            </div>
+            <div style="display:flex;gap:6px;margin-left:auto;">
+              <button onclick="ez12Sort('cron',this)" class="ez12-btn ez12-active" style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid rgba(180,165,140,0.3);background:rgba(180,165,140,0.1);color:var(--txt-faint);cursor:pointer;letter-spacing:0.5px;">🕐 Horário</button>
+              <button onclick="ez12Sort('perda',this)" class="ez12-btn" style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid rgba(180,165,140,0.3);background:rgba(180,165,140,0.1);color:var(--txt-faint);cursor:pointer;letter-spacing:0.5px;">⚠️ Maior Perda</button>
+              <button onclick="ez12Sort('tpi',this)" class="ez12-btn" style="font-family:Barlow,sans-serif;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid rgba(180,165,140,0.3);background:rgba(180,165,140,0.1);color:var(--txt-faint);cursor:pointer;letter-spacing:0.5px;">🐢 Maior TPI</button>
+            </div>
           </div>
-          <div style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;">
-            ${criticas || '<div style="font-family:Barlow,sans-serif;font-size:13px;color:var(--txt-faint);">Nenhuma janela crítica no período.</div>'}
+          <div id="ez12-grid" style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+            ${buildCards(horasCron)}
           </div>
         </div>
       </div>
     </div>`;
 
     html += card12HTML;
+
+    // Dados para o sort (armazenados globalmente para o onclick funcionar)
+    window._ez12 = { horasCron, horasPerda, horasTPI, buildCards };
   }
 
   document.getElementById('ez-main').innerHTML=html;
+
+  // Função de ordenação do card 1.2
+  window.ez12Sort = function(tipo, btn) {
+    if(!window._ez12) return;
+    const {horasCron, horasPerda, horasTPI, buildCards} = window._ez12;
+    const grid = document.getElementById('ez12-grid');
+    if(!grid) return;
+    const horas = tipo==='perda' ? horasPerda : tipo==='tpi' ? horasTPI : horasCron;
+    grid.innerHTML = buildCards(horas);
+    document.querySelectorAll('.ez12-btn').forEach(b=>{
+      b.style.color='var(--txt-faint)';
+      b.style.borderColor='rgba(180,165,140,0.3)';
+      b.style.background='rgba(180,165,140,0.1)';
+    });
+    btn.style.color='var(--gold,#FFA62C)';
+    btn.style.borderColor='var(--gold,#FFA62C)';
+    btn.style.background='rgba(255,166,44,0.1)';
+  };
+
   // Tooltip para colunas CSAT na tabela — estilo sp-tip
   const ezMain = document.getElementById('ez-main');
   let csatTip = document.querySelector('.sp-tip[data-id="ez-csat"]');
