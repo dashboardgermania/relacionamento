@@ -961,7 +961,7 @@ function renderEZ(){
   const csatSatColor = csatEZ.pctSat  >= 70 ? '#1E7A42' : csatEZ.pctSat  >= 50 ? '#966A00' : '#B82418';
   const csatInsColor = csatEZ.pctInsat <= 10 ? '#1E7A42' : csatEZ.pctInsat <= 20 ? '#966A00' : '#B82418';
 
-  const html=`
+  let html=`
   <div class="row">
     <div class="card line-l1" data-s="none">
       <div class="card-ab">
