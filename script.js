@@ -923,35 +923,57 @@ function renderEZ(){
 
   <div class="row">
     <div class="card line-l2" data-s="none"><div class="card-ab">
-      <div class="c-header"><div class="c-title pill-l2">Total de Avaliações</div><div class="c-sub">Pesquisa de satisfação CSAT</div></div>
+      <div class="c-header"><div class="c-title pill-l2">Total de Avaliações</div><div class="c-sub">Pesquisa de satisfação CSAT · período selecionado</div></div>
       ${csatEZ.total > 0 ? `
-        <div class="ez-kpi-val" style="font-size:40px;">${csatEZ.total}</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
-          ${[
-            {emoji:'😄',label:'Tot. Satisfeito', key:'totsat'},
-            {emoji:'🙂',label:'Satisfeito',      key:'sat'},
-            {emoji:'😐',label:'Neutro',           key:'neu'},
-            {emoji:'🙁',label:'Insatisfeito',     key:'ins'},
-            {emoji:'😠',label:'Tot. Insatisfeito',key:'totins'}
-          ].map(({emoji,label,key})=>{
-            const CATS={'totsat':'totalmente satisfeito','sat':'satisfeito','neu':'neutro','ins':'insatisfeito','totins':'totalmente insatisfeito'};
-            const n=data.filter(t=>t.CSAT&&t.CSAT.toLowerCase()===CATS[key]).length;
-            const pct=csatEZ.total?Math.round(n/csatEZ.total*100):0;
-            return n>0?`<span style="font-family:'Barlow Condensed',sans-serif;font-size:12px;display:flex;align-items:center;gap:4px;color:var(--txt-faint);">${emoji} ${pct}%</span>`:'';
-          }).join('')}
-        </div>
-      ` : '<div class="ez-kpi-val" style="font-size:36px;">—</div>'}
+        <div class="ez-kpi-val" style="font-size:48px;margin-top:4px;">${csatEZ.total}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--txt-faint);margin-top:4px;">${csatEZ.total} ticket${csatEZ.total!==1?'s':''} avaliados</div>
+      ` : '<div class="ez-kpi-val" style="font-size:36px;margin-top:8px;">—</div>'}
     </div></div>
+
+    <div class="card line-l2" data-s="none"><div class="card-ab">
+      <div class="c-header"><div class="c-title pill-l2">Distribuição de Avaliações</div><div class="c-sub">Resultado por categoria</div></div>
+      ${(()=>{
+        if(!csatEZ.total) return '<div class="ez-kpi-val" style="font-size:36px;margin-top:8px;">—</div>';
+        const cats=[
+          {emoji:'😄',label:'Totalmente Satisfeito',cat:'totalmente satisfeito',color:'#1E7A42'},
+          {emoji:'🙂',label:'Satisfeito',cat:'satisfeito',color:'#2E8B4A'},
+          {emoji:'😐',label:'Neutro',cat:'neutro',color:'#966A00'},
+          {emoji:'🙁',label:'Insatisfeito',cat:'insatisfeito',color:'#C25A1A'},
+          {emoji:'😠',label:'Tot. Insatisfeito',cat:'totalmente insatisfeito',color:'#B82418'}
+        ];
+        const rows=cats.map(({emoji,label,cat,color})=>{
+          const n=data.filter(t=>t.CSAT&&t.CSAT.toLowerCase()===cat).length;
+          if(!n)return '';
+          const pct=Math.round(n/csatEZ.total*100);
+          return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+            +'<span style="font-size:16px;">'+emoji+'</span>'
+            +'<div style="flex:1;">'
+            +'<div style="display:flex;justify-content:space-between;margin-bottom:3px;">'
+            +'<span style="font-family:Barlow,sans-serif;font-size:12px;color:var(--txt-faint);">'+label+'</span>'
+            +'<span style="font-family:Barlow,sans-serif;font-size:13px;font-weight:700;color:'+color+';">'+pct+'%</span>'
+            +'</div>'
+            +'<div style="height:5px;background:rgba(180,165,140,0.15);border-radius:3px;overflow:hidden;">'
+            +'<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:3px;"></div>'
+            +'</div></div></div>';
+        }).join('');
+        return '<div style="margin-top:10px;">'+rows+'</div>';
+      })()}
+    </div></div>
+
     <div class="card line-l2" data-s="none"><div class="card-ab">
       <div class="c-header"><div class="c-title pill-l2">Score de Satisfação</div><div class="c-sub">% satisfeitos − % insatisfeitos</div></div>
-      ${csatEZ.total > 0 ? `
-        <div class="ez-kpi-val" style="font-size:40px;color:${csatEZ.pctSat-csatEZ.pctInsat>=30?'#1E7A42':csatEZ.pctSat-csatEZ.pctInsat>=0?'#966A00':'#B82418'};">
-          ${csatEZ.pctSat-csatEZ.pctInsat>0?'+':''}${csatEZ.pctSat-csatEZ.pctInsat}
-        </div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--txt-faint);margin-top:6px;">
-          ${csatEZ.pctSat}% satisfeitos · ${csatEZ.pctInsat}% insatisfeitos
-        </div>
-      ` : '<div class="ez-kpi-val" style="font-size:36px;">—</div>'}
+      ${(()=>{
+        if(!csatEZ.total) return '<div class="ez-kpi-val" style="font-size:36px;margin-top:8px;">—</div>';
+        const score=csatEZ.pctSat-csatEZ.pctInsat;
+        const sc=score>=50?'#1E7A42':score>=20?'#2E8B4A':score>=0?'#966A00':'#B82418';
+        const sl=score>=50?'Excelente':score>=20?'Bom':score>=0?'Atenção':'Crítico';
+        return '<div class="ez-kpi-val" style="font-size:56px;font-weight:700;color:'+sc+';margin-top:4px;">'+(score>0?'+':'')+score+'</div>'
+          +'<div style="font-family:Barlow,sans-serif;font-size:13px;font-weight:600;color:'+sc+';letter-spacing:1px;">'+sl+'</div>'
+          +'<div style="font-family:Barlow,sans-serif;font-size:12px;color:var(--txt-faint);margin-top:8px;">'
+          +'<span style="color:#1E7A42;">'+csatEZ.pctSat+'% satisfeitos</span>'
+          +' · <span style="color:#B82418;">'+csatEZ.pctInsat+'% insatisfeitos</span>'
+          +'</div>';
+      })()}
     </div></div>
   </div>
 
